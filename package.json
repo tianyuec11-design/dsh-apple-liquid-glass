@@ -1,0 +1,64 @@
+{
+  "name": "dsh-apple-liquid-glass",
+  "version": "0.1.0",
+  "description": "Apple-style liquid glass for the DSH web client: composer, sidebar controls, model picker and send button, with a live 0–100% intensity control. The page background stays untouched.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "icon": "assets/icon.svg",
+  "files": [
+    "assets/icon.svg",
+    "cordis.patch.yml",
+    "docs",
+    "lib",
+    "LICENSE",
+    "preview/harness.html",
+    "README.md",
+    "README.zh.md",
+    "scripts",
+    "src"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.2.1-0"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "dsh-theme",
+    "deepseek-harness",
+    "liquid-glass",
+    "glassmorphism",
+    "apple",
+    "ios"
+  ],
+  "engines": {
+    "node": ">=18",
+    "dsh": ">=0.2.1-0"
+  },
+  "license": "MIT",
+  "author": "CTY",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tianyuec11-design/dsh-apple-liquid-glass.git"
+  },
+  "homepage": "https://github.com/tianyuec11-design/dsh-apple-liquid-glass#readme",
+  "bugs": {
+    "url": "https://github.com/tianyuec11-design/dsh-apple-liquid-glass/issues"
+  }
+}

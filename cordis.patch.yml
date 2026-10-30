@@ -1,0 +1,6 @@
+# Appended to the host composition as a bundle layer.
+# The client half is served by @deepseek-ai/dsh-client-modules; the host half is
+# an intentional no-op because the theme is browser-only.
+- insert:
+    - id: dsh-apple-liquid-glass
+      name: dsh-apple-liquid-glass

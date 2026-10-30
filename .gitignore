@@ -1,0 +1,13 @@
+# Dependencies and build artifacts
+node_modules/
+*.tgz
+*.log
+
+# Local preview output
+preview/shots/
+preview/chrome-profile*/
+preview/profile-*/
+
+# OS noise
+.DS_Store
+Thumbs.db
