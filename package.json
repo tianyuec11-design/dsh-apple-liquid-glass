@@ -1,7 +1,7 @@
 {
   "name": "dsh-apple-liquid-glass",
-  "version": "0.1.0",
-  "description": "Apple-style liquid glass for the DSH web client: composer, sidebar controls, model picker and send button, with a live 0–100% intensity control. The page background stays untouched.",
+  "version": "0.2.0",
+  "description": "Apple-style liquid glass for the DSH web client: composer with a flowing blue edge glow, sidebar controls, model picker and send button, plus a handwritten hello opening animation. Intensity and splash are configured in the plugin's Settings section; the page background stays untouched.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -11,6 +11,7 @@
   },
   "icon": "assets/icon.svg",
   "files": [
+    "assets/fonts",
     "assets/icon.svg",
     "cordis.patch.yml",
     "docs",
@@ -34,7 +35,10 @@
     },
     "client": {
       "platform": "web",
-      "inject": []
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
     }
   },
   "keywords": [

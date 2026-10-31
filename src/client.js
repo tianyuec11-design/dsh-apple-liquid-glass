@@ -3,18 +3,32 @@
  *
  * This file is the factory body. `scripts/build.mjs` wraps it in the
  * `window.__ModuleLoader__.load({ id, factory })` envelope used by the DSH
- * browser plugin loader and substitutes the stylesheet placeholder.
+ * browser plugin loader, substitutes the stylesheet placeholder, and inlines
+ * the bundled hello-script font.
  *
- * No React dependency: the only rendered surface is the intensity controller,
- * which is plain DOM. The material itself is pure CSS over host elements.
+ * The material is CSS over host elements. The only React surface is the
+ * plugin's Settings section; the opening splash is plain DOM so it can be
+ * shown before/independently of React rendering.
  * ========================================================================== */
 
 var CSS = "__DSLG_CSS__";
 
 var PACKAGE_ID = "dsh-apple-liquid-glass";
+var LOCALE_NS = "dsh-apple-liquid-glass";
 var STORAGE_KEY = "dsh-apple-liquid-glass.settings.v1";
+var SPLASH_SESSION_KEY = "dsh-apple-liquid-glass.splash-played.v1";
 var DEFAULT_LEVEL = 62;
-var TITLE_ID = "dslg-title";
+
+var React = null;
+try {
+  React = require("react");
+} catch (error) {
+  /* Static preview / non-DSH host: the material and splash still work. */
+  React = null;
+}
+
+var h = React ? React.createElement : null;
+var useSyncExternalStore = React ? React.useSyncExternalStore : null;
 
 var LEVEL_VARS = [
   "--dslg-level",
@@ -48,62 +62,34 @@ var PRESS_SELECTOR = [
   "[data-composer-card] button",
 ].join(",");
 
-var DROP_SVG = [
-  '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">',
-  '<path d="M12 2.9c3.82 4.2 6.3 7.35 6.3 10.45a6.3 6.3 0 1 1-12.6 0C5.7 10.25 8.18 7.1 12 2.9Z" fill="currentColor" opacity=".9"/>',
-  '<path d="M12 6.55c2.42 2.7 3.95 4.72 3.95 6.8a3.95 3.95 0 1 1-7.9 0c0-2.08 1.53-4.1 3.95-6.8Z" fill="#fff" opacity=".32"/>',
-  '<ellipse cx="9.35" cy="13.1" rx="1.35" ry="2.15" fill="#fff" opacity=".55" transform="rotate(-26 9.35 13.1)"/>',
-  "</svg>",
-].join("");
-
-var CHEV_SVG = [
-  '<svg viewBox="0 0 12 12" width="10" height="10" fill="none" aria-hidden="true">',
-  '<path d="M3 4.5 6 7.5 9 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
-  "</svg>",
-].join("");
-
-var X_SVG = [
-  '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true">',
-  '<path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
-  "</svg>",
-].join("");
-
-var STRINGS = {
+var LOCALES = {
   zh: {
-    title: "液态玻璃",
-    fab: "调节液态玻璃强度",
-    close: "关闭",
-    slider: "液态玻璃强度",
-    presets: "快捷强度",
-    note: "只作用于输入框、侧边栏按钮、模型选择与发送按钮，页面背景保持不变。",
-    reset: "重置",
-    off: "已关闭 · 原生外观",
-    light: "轻盈玻璃",
-    medium: "中等玻璃",
-    strong: "强玻璃",
-    presetOff: "关闭",
-    presetLight: "轻",
-    presetMid: "中",
-    presetStrong: "强",
-    brand: "Liquid Glass",
+    "settings.title": "液态玻璃",
+    "settings.intro": "控制液态玻璃材质强度与开屏动效。只影响输入框、侧边栏、模型选择和发送按钮，页面背景保持不变。",
+    "settings.intensity": "玻璃强度",
+    "settings.intensity.description": "0% 完全恢复原生外观；拖动时立即生效，设置会自动保存。",
+    "settings.presets": "快捷强度",
+    "settings.preset.off": "关闭",
+    "settings.preset.light": "轻",
+    "settings.preset.mid": "中",
+    "settings.preset.strong": "强",
+    "settings.splash": "开屏动效",
+    "settings.splash.description": "打开 DSH 时播放约 6 秒的 hello 书写动画。开启后会立即预览一次，之后每个窗口会话播放一次。",
+    "splash.skip": "点击跳过",
   },
   en: {
-    title: "Liquid Glass",
-    fab: "Adjust liquid glass intensity",
-    close: "Close",
-    slider: "Liquid glass intensity",
-    presets: "Quick intensity",
-    note: "Applies to the composer, sidebar controls, model picker, and send button. The page background stays untouched.",
-    reset: "Reset",
-    off: "Off · native appearance",
-    light: "Light glass",
-    medium: "Medium glass",
-    strong: "Strong glass",
-    presetOff: "Off",
-    presetLight: "Light",
-    presetMid: "Mid",
-    presetStrong: "Strong",
-    brand: "Liquid Glass",
+    "settings.title": "Liquid Glass",
+    "settings.intro": "Control the liquid-glass intensity and the opening animation. Applies only to the composer, sidebar, model picker, and send button. The page background stays untouched.",
+    "settings.intensity": "Glass intensity",
+    "settings.intensity.description": "0% restores the native appearance completely. Changes apply live and are saved automatically.",
+    "settings.presets": "Quick intensity",
+    "settings.preset.off": "Off",
+    "settings.preset.light": "Light",
+    "settings.preset.mid": "Mid",
+    "settings.preset.strong": "Strong",
+    "settings.splash": "Opening animation",
+    "settings.splash.description": "Plays a ~6 second handwritten hello when DSH opens. Enabling it previews once; afterwards it plays once per window session.",
+    "splash.skip": "Click to skip",
   },
 };
 
@@ -124,8 +110,13 @@ function isZhUi() {
   return String(lang).toLowerCase().indexOf("zh") === 0;
 }
 
-function strings() {
-  return isZhUi() ? STRINGS.zh : STRINGS.en;
+function localeDictionary() {
+  return isZhUi() ? LOCALES.zh : LOCALES.en;
+}
+
+function t(key) {
+  var dictionary = localeDictionary();
+  return dictionary[key] !== undefined ? dictionary[key] : key;
 }
 
 function clampLevel(value) {
@@ -134,37 +125,36 @@ function clampLevel(value) {
   return Math.min(100, Math.max(0, Math.round(number)));
 }
 
-function readLevel() {
-  try {
-    var raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_LEVEL;
-    var parsed = JSON.parse(raw);
-    if (parsed !== null && typeof parsed === "object" && Number.isFinite(parsed.level)) {
-      return clampLevel(parsed.level);
-    }
-  } catch (error) {
-    /* Private mode / disabled storage: keep the in-memory default. */
-  }
-  return DEFAULT_LEVEL;
+function defaultSettings() {
+  return { level: DEFAULT_LEVEL, splashEnabled: true };
 }
 
-function readLevelFromRaw(raw) {
+function parseSettings(value) {
+  if (value === null || typeof value !== "object") return null;
+  return {
+    level: clampLevel(value.level),
+    splashEnabled: typeof value.splashEnabled === "boolean" ? value.splashEnabled : true,
+  };
+}
+
+function readSettings() {
   try {
-    var parsed = JSON.parse(raw);
-    if (parsed !== null && typeof parsed === "object" && Number.isFinite(parsed.level)) {
-      return clampLevel(parsed.level);
-    }
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultSettings();
+    var parsed = parseSettings(JSON.parse(raw));
+    return parsed === null ? defaultSettings() : parsed;
+  } catch (error) {
+    return defaultSettings();
+  }
+}
+
+function readSettingsFromRaw(raw) {
+  try {
+    var parsed = parseSettings(JSON.parse(raw));
+    return parsed;
   } catch (error) {
     return null;
   }
-  return null;
-}
-
-function labelForLevel(level, text) {
-  if (level <= 0) return text.off;
-  if (level <= 30) return text.light;
-  if (level <= 70) return text.medium;
-  return text.strong;
 }
 
 function applyLevel(level) {
@@ -210,236 +200,124 @@ function clearLevelVars() {
   body.removeAttribute("data-dslg-level");
 }
 
-function buildController() {
-  var root = document.createElement("div");
-  root.className = "dslg-root";
-  root.setAttribute("data-dslg-root", "");
-  root.innerHTML = [
-    '<div class="dslg-panel" data-dslg-panel role="dialog" aria-labelledby="' + TITLE_ID + '" hidden>',
-    '  <div class="dslg-head">',
-    '    <span class="dslg-head__mark" aria-hidden="true">' + DROP_SVG + "</span>",
-    '    <span class="dslg-head__copy">',
-    '      <span class="dslg-title" data-dslg-title id="' + TITLE_ID + '"></span>',
-    '      <span class="dslg-sub" data-dslg-sub></span>',
-    "    </span>",
-    '    <button class="dslg-iconbtn" type="button" data-dslg-close></button>',
-    "  </div>",
-    '  <div class="dslg-readout" aria-hidden="true"><span data-dslg-value>0</span><span class="dslg-readout__pct">%</span></div>',
-    '  <div class="dslg-sliderbox">',
-    '    <input class="dslg-slider" data-dslg-range type="range" min="0" max="100" step="1" value="0" />',
-    '    <div class="dslg-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>',
-    "  </div>",
-    '  <div class="dslg-presets" data-dslg-presets role="group">',
-    '    <button type="button" data-dslg-preset="0"></button>',
-    '    <button type="button" data-dslg-preset="35"></button>',
-    '    <button type="button" data-dslg-preset="65"></button>',
-    '    <button type="button" data-dslg-preset="100"></button>',
-    "  </div>",
-    '  <p class="dslg-note" data-dslg-note></p>',
-    '  <div class="dslg-foot">',
-    '    <span class="dslg-brand">Liquid Glass</span>',
-    '    <span class="dslg-dot" aria-hidden="true"></span>',
-    '    <button type="button" class="dslg-reset" data-dslg-reset></button>',
-    "  </div>",
-    "</div>",
-    '<button class="dslg-fab" data-dslg-fab type="button" aria-haspopup="dialog" aria-expanded="false">',
-    '  <span class="dslg-fab__drop" aria-hidden="true">' + DROP_SVG + "</span>",
-    '  <span class="dslg-fab__text"><span data-dslg-fab-pct>0</span><span class="dslg-fab__pct">%</span></span>',
-    '  <span class="dslg-fab__chev" aria-hidden="true">' + CHEV_SVG + "</span>",
-    "</button>",
-  ].join("\n");
-  document.body.appendChild(root);
+/* --------------------------------------------------------------------------
+   Preference store
+   -------------------------------------------------------------------------- */
+
+function createStore() {
+  var snapshot = readSettings();
+  var listeners = new Set();
+  var saveTimer = 0;
+  var disposed = false;
+
+  function emit() {
+    listeners.forEach(function (listener) {
+      try {
+        listener();
+      } catch (error) {
+        /* A settings component must not break the material. */
+      }
+    });
+  }
+
+  function saveNow() {
+    if (saveTimer !== 0) {
+      clearTimeout(saveTimer);
+      saveTimer = 0;
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        version: 2,
+        level: snapshot.level,
+        splashEnabled: snapshot.splashEnabled,
+      }));
+    } catch (error) {
+      /* Private mode / disabled storage: keep the in-memory values. */
+    }
+  }
+
+  function scheduleSave() {
+    if (disposed) return;
+    if (saveTimer !== 0) clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 160);
+  }
+
+  function onStorage(event) {
+    if (event.key !== STORAGE_KEY) return;
+    var next = event.newValue === null ? defaultSettings() : readSettingsFromRaw(event.newValue);
+    if (next === null) return;
+    snapshot = next;
+    emit();
+  }
+
+  window.addEventListener("storage", onStorage);
 
   return {
-    root: root,
-    panel: root.querySelector("[data-dslg-panel]"),
-    fab: root.querySelector("[data-dslg-fab]"),
-    fabPct: root.querySelector("[data-dslg-fab-pct]"),
-    close: root.querySelector("[data-dslg-close]"),
-    title: root.querySelector("[data-dslg-title]"),
-    sub: root.querySelector("[data-dslg-sub]"),
-    value: root.querySelector("[data-dslg-value]"),
-    range: root.querySelector("[data-dslg-range]"),
-    presetsWrap: root.querySelector("[data-dslg-presets]"),
-    presets: Array.prototype.slice.call(root.querySelectorAll("[data-dslg-preset]")),
-    note: root.querySelector("[data-dslg-note]"),
-    reset: root.querySelector("[data-dslg-reset]"),
-    brand: root.querySelector(".dslg-brand"),
+    getSnapshot: function () {
+      return snapshot;
+    },
+    subscribe: function (listener) {
+      if (disposed) return function () {};
+      listeners.add(listener);
+      return function () {
+        listeners.delete(listener);
+      };
+    },
+    setLevel: function (next) {
+      if (disposed) return;
+      var level = clampLevel(next);
+      if (level === snapshot.level) return;
+      snapshot = { level: level, splashEnabled: snapshot.splashEnabled };
+      scheduleSave();
+      emit();
+    },
+    setSplashEnabled: function (next) {
+      if (disposed) return;
+      var enabled = next === true;
+      if (enabled === snapshot.splashEnabled) return;
+      snapshot = { level: snapshot.level, splashEnabled: enabled };
+      saveNow();
+      emit();
+    },
+    flush: saveNow,
+    dispose: function () {
+      if (disposed) return;
+      disposed = true;
+      saveNow();
+      window.removeEventListener("storage", onStorage);
+      listeners.clear();
+    },
   };
 }
 
-/**
- * Mount one controller and return its idempotent disposer.
- * @returns {{ dispose: () => void }}
- */
-function mount() {
+/* --------------------------------------------------------------------------
+   Material
+   -------------------------------------------------------------------------- */
+
+function createMaterial(store) {
   var style = document.createElement("style");
   style.setAttribute("data-plugin", PACKAGE_ID);
   style.textContent = CSS;
   document.head.appendChild(style);
 
-  var ui = buildController();
-  var state = { level: readLevel(), open: false };
   var disposed = false;
-  var saveTimer = 0;
   var raf = 0;
-  var focusRaf = 0;
   var pendingSurface = null;
   var pressed = null;
+  var typingCard = null;
+  var typingTimer = 0;
 
-  function text() {
-    return strings();
+  function apply() {
+    applyLevel(store.getSnapshot().level);
   }
 
-  function updateCopy() {
-    var s = text();
-    var level = state.level;
-    ui.title.textContent = s.title;
-    ui.note.textContent = s.note;
-    ui.reset.textContent = s.reset;
-    ui.close.setAttribute("aria-label", s.close);
-    ui.fab.setAttribute("aria-label", s.fab + " · " + level + "%");
-    ui.fab.setAttribute("title", s.fab);
-    ui.range.setAttribute("aria-label", s.slider);
-    ui.presetsWrap.setAttribute("aria-label", s.presets);
-    ui.brand.textContent = s.brand;
-    ui.sub.textContent = labelForLevel(level, s);
-    ui.presets[0].textContent = s.presetOff;
-    ui.presets[1].textContent = s.presetLight;
-    ui.presets[2].textContent = s.presetMid;
-    ui.presets[3].textContent = s.presetStrong;
-  }
-
-  function updatePresets() {
-    var level = state.level;
-    var active = level <= 0 ? 0 : level <= 30 ? 35 : level <= 70 ? 65 : 100;
-    for (var index = 0; index < ui.presets.length; index += 1) {
-      var button = ui.presets[index];
-      var value = Number(button.getAttribute("data-dslg-preset"));
-      var on = value === active;
-      button.classList.toggle("is-on", on);
-      button.setAttribute("aria-pressed", on ? "true" : "false");
-    }
-  }
-
-  function renderLevel() {
-    var level = state.level;
-    applyLevel(level);
-    ui.range.value = String(level);
-    ui.range.style.setProperty("--dslg-fill", level + "%");
-    ui.range.setAttribute("aria-valuetext", level + "%");
-    ui.value.textContent = String(level);
-    ui.fabPct.textContent = String(level);
-    updateCopy();
-    updatePresets();
-  }
-
-  function flushSave() {
-    try {
-      if (saveTimer !== 0) {
-        clearTimeout(saveTimer);
-        saveTimer = 0;
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, level: state.level }));
-    } catch (error) {
-      /* Storage is a convenience; the live theme keeps working without it. */
-    }
-  }
-
-  function scheduleSave() {
-    try {
-      if (saveTimer !== 0) clearTimeout(saveTimer);
-      saveTimer = setTimeout(flushSave, 160);
-    } catch (error) {
-      saveTimer = 0;
-    }
-  }
-
-  function setLevel(next, options) {
-    if (disposed) return;
-    var level = clampLevel(next);
-    state.level = level;
-    renderLevel();
-    if (!options || options.persist !== false) scheduleSave();
-  }
-
-  function openPanel() {
-    if (disposed || state.open) return;
-    state.open = true;
-    ui.panel.hidden = false;
-    ui.fab.setAttribute("aria-expanded", "true");
-    document.addEventListener("pointerdown", onOutsidePointerDown, true);
-    document.addEventListener("keydown", onKeyDown, true);
-    if (focusRaf === 0) {
-      focusRaf = requestAnimationFrame(function () {
-        focusRaf = 0;
-        if (state.open) ui.range.focus({ preventScroll: true });
-      });
-    }
-  }
-
-  function closePanel(options) {
-    if (!state.open) return;
-    state.open = false;
-    ui.panel.hidden = true;
-    ui.fab.setAttribute("aria-expanded", "false");
-    document.removeEventListener("pointerdown", onOutsidePointerDown, true);
-    document.removeEventListener("keydown", onKeyDown, true);
-    if (!options || options.restoreFocus !== false) {
-      try {
-        ui.fab.focus({ preventScroll: true });
-      } catch (error) {
-        ui.fab.focus();
-      }
-    }
-  }
-
-  function togglePanel() {
-    if (state.open) closePanel();
-    else openPanel();
-  }
-
-  function onOutsidePointerDown(event) {
-    if (!(event.target instanceof Element)) return;
-    if (ui.root.contains(event.target)) return;
-    closePanel({ restoreFocus: false });
-  }
-
-  function onKeyDown(event) {
-    if (event.key !== "Escape" || !state.open) return;
-    event.preventDefault();
-    closePanel();
-  }
-
-  function onRangeInput() {
-    setLevel(ui.range.value, { persist: false });
-    scheduleSave();
-  }
-
-  function onRangeWheel(event) {
-    event.preventDefault();
-    var step = event.shiftKey ? 5 : 1;
-    var delta = event.deltaY < 0 ? step : -step;
-    setLevel(state.level + delta);
-  }
-
-  function onPresetClick(event) {
-    if (!(event.target instanceof Element)) return;
-    var button = event.target.closest("[data-dslg-preset]");
-    if (!button || !ui.root.contains(button)) return;
-    setLevel(button.getAttribute("data-dslg-preset"));
-    flushSave();
-  }
-
-  function onResetClick() {
-    setLevel(DEFAULT_LEVEL);
-    flushSave();
-  }
+  var unsubscribe = store.subscribe(apply);
+  apply();
 
   function onPointerMove(event) {
-    if (state.level <= 0 || !(event.target instanceof Element)) return;
+    if (store.getSnapshot().level <= 0 || !(event.target instanceof Element)) return;
     var surface = event.target.closest(SURFACE_SELECTOR);
-    if (!surface || ui.root.contains(surface)) return;
+    if (!surface) return;
     var rect = surface.getBoundingClientRect();
     if (rect.width < 1 || rect.height < 1) return;
     pendingSurface = {
@@ -466,72 +344,70 @@ function mount() {
   }
 
   function onPointerDown(event) {
-    if (event.button !== 0 || state.level <= 0 || !(event.target instanceof Element)) return;
+    if (event.button !== 0 || store.getSnapshot().level <= 0 || !(event.target instanceof Element)) return;
     var surface = event.target.closest(PRESS_SELECTOR);
-    if (!surface || ui.root.contains(surface)) return;
+    if (!surface) return;
     clearPress();
     pressed = surface;
     surface.classList.add("dslg-pressed");
   }
 
-  function onStorage(event) {
-    if (event.key !== STORAGE_KEY) return;
-    var next = event.newValue === null ? DEFAULT_LEVEL : readLevelFromRaw(event.newValue);
-    if (next !== null) setLevel(next, { persist: false });
+  function pauseIconFlow(event) {
+    if (store.getSnapshot().level <= 0 || !(event.target instanceof Element)) return;
+    var card = event.target.closest("[data-composer-card]");
+    if (!card) return;
+    if (typingCard !== null && typingCard !== card) {
+      typingCard.removeAttribute("data-dslg-typing");
+    }
+    typingCard = card;
+    card.setAttribute("data-dslg-typing", "true");
+    if (typingTimer !== 0) clearTimeout(typingTimer);
+    typingTimer = setTimeout(function () {
+      typingTimer = 0;
+      if (typingCard !== null) {
+        typingCard.removeAttribute("data-dslg-typing");
+        typingCard = null;
+      }
+    }, 1100);
   }
 
-  function onLanguageChange() {
-    renderLevel();
-  }
-
-  var languageObserver = new MutationObserver(onLanguageChange);
-  languageObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
-
-  ui.fab.addEventListener("click", togglePanel);
-  ui.close.addEventListener("click", function () {
-    closePanel();
-  });
-  ui.range.addEventListener("input", onRangeInput);
-  ui.range.addEventListener("change", flushSave);
-  ui.range.addEventListener("wheel", onRangeWheel, { passive: false });
-  ui.presetsWrap.addEventListener("click", onPresetClick);
-  ui.reset.addEventListener("click", onResetClick);
   document.addEventListener("pointermove", onPointerMove, { passive: true });
   document.addEventListener("pointerdown", onPointerDown, true);
+  document.addEventListener("input", pauseIconFlow, true);
+  document.addEventListener("keydown", pauseIconFlow, true);
+  document.addEventListener("compositionstart", pauseIconFlow, true);
+  document.addEventListener("compositionend", pauseIconFlow, true);
   window.addEventListener("pointerup", clearPress, true);
   window.addEventListener("pointercancel", clearPress, true);
   window.addEventListener("blur", clearPress);
-  window.addEventListener("storage", onStorage);
-
-  renderLevel();
 
   function dispose() {
     if (disposed) return;
     disposed = true;
-    flushSave();
-    closePanel({ restoreFocus: false });
-    clearPress();
+    unsubscribe();
     if (raf !== 0) {
       cancelAnimationFrame(raf);
       raf = 0;
     }
-    if (focusRaf !== 0) {
-      cancelAnimationFrame(focusRaf);
-      focusRaf = 0;
+    if (typingTimer !== 0) {
+      clearTimeout(typingTimer);
+      typingTimer = 0;
     }
-    if (saveTimer !== 0) {
-      clearTimeout(saveTimer);
-      saveTimer = 0;
+    if (typingCard !== null) {
+      typingCard.removeAttribute("data-dslg-typing");
+      typingCard = null;
     }
-    languageObserver.disconnect();
     document.removeEventListener("pointermove", onPointerMove);
     document.removeEventListener("pointerdown", onPointerDown, true);
+    document.removeEventListener("input", pauseIconFlow, true);
+    document.removeEventListener("keydown", pauseIconFlow, true);
+    document.removeEventListener("compositionstart", pauseIconFlow, true);
+    document.removeEventListener("compositionend", pauseIconFlow, true);
     window.removeEventListener("pointerup", clearPress, true);
     window.removeEventListener("pointercancel", clearPress, true);
     window.removeEventListener("blur", clearPress);
-    window.removeEventListener("storage", onStorage);
+    clearPress();
     style.remove();
-    ui.root.remove();
     clearLevelVars();
     try {
       var leftovers = document.querySelectorAll(".dslg-pressed");
@@ -539,21 +415,275 @@ function mount() {
         leftovers[index].classList.remove("dslg-pressed");
       }
     } catch (error) {
-      /* Detached document: nothing to clean. */
-    }
-    if (window.__DSH_LIQUID_GLASS_DISPOSE__ === dispose) {
-      delete window.__DSH_LIQUID_GLASS_DISPOSE__;
+      /* Detached document. */
     }
   }
 
-  window.__DSH_LIQUID_GLASS_DISPOSE__ = dispose;
   return { dispose: dispose };
 }
 
-/**
- * DSH browser plugin entrypoint.
- * @param {object} ctx Cordis client context.
- */
+/* --------------------------------------------------------------------------
+   Opening splash
+   -------------------------------------------------------------------------- */
+
+function createSplash(store) {
+  var active = null;
+  var reducedMotion = false;
+  try {
+    reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (error) {
+    reducedMotion = false;
+  }
+
+  function play(options) {
+    if (!(options && options.force) && !store.getSnapshot().splashEnabled) return;
+    disposeActive();
+
+    var overlay = document.createElement("div");
+    overlay.className = "dslg-splash" + (reducedMotion ? " is-reduced" : "");
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.innerHTML = [
+      '<div class="dslg-splash__glow" aria-hidden="true"></div>',
+      '<div class="dslg-splash__stage">',
+      '  <div class="dslg-splash__word">',
+      '    <span class="dslg-splash__hello">hello</span>',
+      '    <span class="dslg-splash__pen" aria-hidden="true"></span>',
+      "  </div>",
+      "</div>",
+      '<div class="dslg-splash__hint"></div>',
+    ].join("\n");
+    var hint = overlay.querySelector(".dslg-splash__hint");
+    hint.textContent = t("splash.skip");
+    document.body.appendChild(overlay);
+    document.documentElement.classList.add("dslg-splash-lock");
+
+    var gone = false;
+    var leaving = false;
+    var readyTimer = 0;
+    var removeTimer = 0;
+    var skipTimer = 0;
+
+    function ready() {
+      if (gone || leaving || overlay.classList.contains("is-ready")) return;
+      overlay.classList.add("is-ready");
+      if (readyTimer !== 0) {
+        clearTimeout(readyTimer);
+        readyTimer = 0;
+      }
+      if (reducedMotion) {
+        skipTimer = setTimeout(skip, 1900);
+      } else {
+        removeTimer = setTimeout(skip, 5400);
+      }
+    }
+
+    function cleanup() {
+      if (gone) return;
+      gone = true;
+      if (readyTimer !== 0) clearTimeout(readyTimer);
+      if (removeTimer !== 0) clearTimeout(removeTimer);
+      if (skipTimer !== 0) clearTimeout(skipTimer);
+      readyTimer = 0;
+      removeTimer = 0;
+      skipTimer = 0;
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.documentElement.classList.remove("dslg-splash-lock");
+      overlay.remove();
+      if (active !== null && active.overlay === overlay) active = null;
+    }
+
+    function skip() {
+      if (gone || leaving) return;
+      leaving = true;
+      overlay.classList.add("is-leaving");
+      if (removeTimer !== 0) {
+        clearTimeout(removeTimer);
+        removeTimer = 0;
+      }
+      var currentOpacity = 1;
+      try {
+        currentOpacity = parseFloat(window.getComputedStyle(overlay).opacity) || 0;
+      } catch (error) {
+        currentOpacity = 1;
+      }
+      overlay.style.animation = "none";
+      overlay.style.opacity = String(currentOpacity);
+      void overlay.offsetWidth;
+      overlay.style.transition = "opacity 300ms ease";
+      overlay.style.opacity = "0";
+      skipTimer = setTimeout(cleanup, 330);
+    }
+
+    function onKeyDown(event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        skip();
+      }
+    }
+
+    overlay.addEventListener("click", skip);
+    document.addEventListener("keydown", onKeyDown, true);
+
+    if (document.fonts && typeof document.fonts.load === "function") {
+      document.fonts.load('600 1em "DSLG Hello"').then(ready, ready);
+      readyTimer = setTimeout(ready, 700);
+    } else {
+      ready();
+    }
+
+    active = {
+      overlay: overlay,
+      cleanup: cleanup,
+      skip: skip,
+    };
+  }
+
+  function disposeActive() {
+    if (active !== null) {
+      var current = active;
+      active = null;
+      current.cleanup();
+    }
+  }
+
+  return {
+    play: play,
+    dispose: disposeActive,
+    isActive: function () {
+      return active !== null;
+    },
+  };
+}
+
+/* --------------------------------------------------------------------------
+   Settings section
+   -------------------------------------------------------------------------- */
+
+function createSettingsComponent(store, splash) {
+  if (!React || typeof useSyncExternalStore !== "function") return null;
+
+  function LiquidGlassSettings(props) {
+    var snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot);
+    var tr = props && typeof props.t === "function" ? props.t : t;
+    var level = snapshot.level;
+    var enabled = snapshot.splashEnabled;
+    var activePreset = level <= 0 ? 0 : level <= 30 ? 35 : level <= 70 ? 65 : 100;
+    var presets = [
+      { value: 0, key: "settings.preset.off" },
+      { value: 35, key: "settings.preset.light" },
+      { value: 65, key: "settings.preset.mid" },
+      { value: 100, key: "settings.preset.strong" },
+    ];
+
+    return h("section", { className: "dslg-settings", "aria-label": tr("settings.title") },
+      h("h2", { className: "dslg-settings__title" }, tr("settings.title")),
+      h("p", { className: "dslg-settings__intro" }, tr("settings.intro")),
+      h("div", { className: "dslg-settings__card" },
+        h("div", { className: "dslg-settings__row" },
+          h("div", { className: "dslg-settings__copy" },
+            h("div", { className: "dslg-settings__label" }, tr("settings.intensity")),
+            h("p", { className: "dslg-settings__desc" }, tr("settings.intensity.description"))
+          ),
+          h("div", { className: "dslg-settings__value", "aria-hidden": "true" }, level + "%")
+        ),
+        h("input", {
+          className: "dslg-settings__range",
+          type: "range",
+          min: 0,
+          max: 100,
+          step: 1,
+          value: level,
+          "aria-label": tr("settings.intensity"),
+          "aria-valuetext": level + "%",
+          style: { "--dslg-fill": level + "%" },
+          onInput: function (event) {
+            store.setLevel(event.currentTarget.value);
+          },
+        }),
+        h("div", { className: "dslg-settings__scale", "aria-hidden": "true" },
+          h("span", null, "0"),
+          h("span", null, "25"),
+          h("span", null, "50"),
+          h("span", null, "75"),
+          h("span", null, "100")
+        ),
+        h("div", { className: "dslg-settings__presets", role: "group", "aria-label": tr("settings.presets") },
+          presets.map(function (preset) {
+            var isOn = preset.value === activePreset;
+            return h("button", {
+              key: preset.key,
+              type: "button",
+              className: "dslg-settings__preset" + (isOn ? " is-on" : ""),
+              "aria-pressed": isOn ? "true" : "false",
+              onClick: function () {
+                store.setLevel(preset.value);
+              },
+            }, tr(preset.key));
+          })
+        )
+      ),
+      h("div", { className: "dslg-settings__card" },
+        h("div", { className: "dslg-settings__row dslg-settings__row--center" },
+          h("div", { className: "dslg-settings__copy" },
+            h("div", { className: "dslg-settings__label" }, tr("settings.splash")),
+            h("p", { className: "dslg-settings__desc" }, tr("settings.splash.description"))
+          ),
+          h("button", {
+            type: "button",
+            role: "switch",
+            className: "dslg-settings__switch" + (enabled ? " is-on" : ""),
+            "aria-checked": enabled ? "true" : "false",
+            "aria-label": tr("settings.splash"),
+            onClick: function () {
+              var next = !store.getSnapshot().splashEnabled;
+              store.setSplashEnabled(next);
+              if (next) {
+                setTimeout(function () {
+                  splash.play({ force: true });
+                }, 260);
+              }
+            },
+          }, h("span", { className: "dslg-settings__knob", "aria-hidden": "true" }))
+        )
+      )
+    );
+  }
+
+  return LiquidGlassSettings;
+}
+
+function registerSettings(ctx, store, splash) {
+  if (!React || !ctx || !ctx.slots || !ctx.locale) return null;
+  var component = createSettingsComponent(store, splash);
+  if (component === null) return null;
+
+  ctx.effect(function () {
+    return ctx.locale.register(LOCALE_NS, LOCALES);
+  }, "dsh-apple-liquid-glass: settings locale");
+
+  var bind = ctx.locale.bind(LOCALE_NS);
+  var dispose = ctx.slots.inject("settings.section", function () {
+    return ctx.slots.register({
+      name: "settings.section",
+      id: "dsh-apple-liquid-glass-settings",
+      order: 47,
+      label: function () {
+        return bind("settings.title");
+      },
+      locale: LOCALE_NS,
+      inject: function () {
+        return { store: store, splash: splash };
+      },
+    }, component);
+  });
+
+  return typeof dispose === "function" ? dispose : null;
+}
+
+/* --------------------------------------------------------------------------
+   Entrypoint
+   -------------------------------------------------------------------------- */
+
 function apply(ctx) {
   if (typeof window === "undefined" || typeof document === "undefined") return;
 
@@ -562,13 +692,60 @@ function apply(ctx) {
       if (typeof window.__DSH_LIQUID_GLASS_DISPOSE__ === "function") {
         window.__DSH_LIQUID_GLASS_DISPOSE__();
       }
-      var instance = mount();
+
+      var store = createStore();
+      var material = createMaterial(store);
+      var splash = createSplash(store);
+      var settingsDispose = null;
+      try {
+        settingsDispose = registerSettings(ctx, store, splash);
+      } catch (error) {
+        try {
+          console.warn("[dsh-apple-liquid-glass] settings section unavailable", error);
+        } catch (ignored) {
+          /* Console unavailable. */
+        }
+      }
+
+      var played = false;
+      try {
+        played = sessionStorage.getItem(SPLASH_SESSION_KEY) === "1";
+      } catch (error) {
+        played = false;
+      }
+      if (store.getSnapshot().splashEnabled && !played) {
+        try {
+          sessionStorage.setItem(SPLASH_SESSION_KEY, "1");
+        } catch (error) {
+          /* Private mode: play each load. */
+        }
+        splash.play();
+      }
+
+      var disposed = false;
+      function dispose() {
+        if (disposed) return;
+        disposed = true;
+        if (typeof settingsDispose === "function") {
+          try {
+            settingsDispose();
+          } catch (error) {
+            /* The slots service may already have torn the section down. */
+          }
+        }
+        splash.dispose();
+        material.dispose();
+        store.dispose();
+        if (window.__DSH_LIQUID_GLASS_DISPOSE__ === dispose) {
+          delete window.__DSH_LIQUID_GLASS_DISPOSE__;
+        }
+      }
+
+      window.__DSH_LIQUID_GLASS_DISPOSE__ = dispose;
       if (ctx && typeof ctx.effect === "function") {
         ctx.effect(function () {
-          return function () {
-            instance.dispose();
-          };
-        }, "dsh-apple-liquid-glass: surface material");
+          return dispose;
+        }, "dsh-apple-liquid-glass: theme");
       }
     } catch (error) {
       try {
@@ -584,4 +761,4 @@ function apply(ctx) {
 }
 
 exports.apply = apply;
-exports.inject = [];
+exports.inject = ["slots", "locale"];

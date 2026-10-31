@@ -20,13 +20,23 @@ const root = resolve(here, "..");
 const manifest = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 const css = await readFile(resolve(root, "src/style.css"), "utf8");
 const source = await readFile(resolve(root, "src/client.js"), "utf8");
+const helloFont = await readFile(resolve(root, "assets/fonts/dancing-script-latin.woff2"));
+
+const FONT_PLACEHOLDER = "__DSLG_HELLO_FONT__";
+if (!css.includes(FONT_PLACEHOLDER)) {
+  throw new Error("src/style.css is missing the hello-font placeholder");
+}
+const cssWithFont = css.replace(
+  FONT_PLACEHOLDER,
+  `url("data:font/woff2;base64,${helloFont.toString("base64")}")`,
+);
 
 const PLACEHOLDER = '"__DSLG_CSS__"';
 if (!source.includes(PLACEHOLDER)) {
   throw new Error("src/client.js is missing the CSS placeholder");
 }
 
-const body = source.replace(PLACEHOLDER, JSON.stringify(css));
+const body = source.replace(PLACEHOLDER, JSON.stringify(cssWithFont));
 const banner = [
   "/*!",
   " * " + manifest.name + " v" + manifest.version,

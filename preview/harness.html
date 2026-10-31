@@ -493,7 +493,7 @@
             <p>可以。先把玻璃材质限定在这四类控件上：输入卡、侧边栏可点击项、模型选择器和发送按钮。强度用一个独立按钮控制，0% 时完全回到原生外观。</p>
             <div class="mock_code">backdrop-filter: blur(var(--dslg-blur)) saturate(var(--dslg-sat));
 box-shadow: inset 0 1px 0 var(--dslg-glow), 0 12px 34px var(--dslg-drop);</div>
-            <p>背景保持原样，玻璃只从控件自己的边缘高光、折射色调和阴影里拿质感。下面是实际效果——拖动右下角的水滴按钮就能实时比较。</p>
+            <p>背景保持原样，玻璃只从控件自己的边缘高光、折射色调和阴影里拿质感。下面是实际效果——在 设置 → 液态玻璃 里拖动强度滑杆就能实时比较。</p>
           </div>
           <div class="mock_assistant">
             <p><strong>提示：</strong>把鼠标移到侧边栏的会话行上，玻璃的高光会跟着指针移动。</p>
@@ -523,7 +523,7 @@ box-shadow: inset 0 1px 0 var(--dslg-glow), 0 12px 34px var(--dslg-drop);</div>
             </div>
           </div>
         </div>
-        <div class="mock_scope">玻璃强度 0–100% · 页面背景保持不变</div>
+        <div class="mock_scope">强度与开屏动效在 设置 → 液态玻璃 中调整 · 页面背景保持不变</div>
       </div>
     </main>
   </div>
@@ -534,15 +534,16 @@ box-shadow: inset 0 1px 0 var(--dslg-glow), 0 12px 34px var(--dslg-drop);</div>
       var theme = params.get("theme");
       var lang = params.get("lang");
       var level = params.get("level");
+      var splash = params.get("splash") === "1";
       if (theme === "dark") document.body.setAttribute("data-ds-dark-theme", "");
       if (lang === "en") document.documentElement.lang = "en";
-      if (level !== null) {
-        try {
-          localStorage.setItem("dsh-apple-liquid-glass.settings.v1", JSON.stringify({ version: 1, level: Number(level) }));
-        } catch (error) {}
-      } else {
-        try { localStorage.removeItem("dsh-apple-liquid-glass.settings.v1"); } catch (error) {}
-      }
+      try {
+        localStorage.setItem("dsh-apple-liquid-glass.settings.v1", JSON.stringify({
+          version: 2,
+          level: level === null ? 62 : Number(level),
+          splashEnabled: splash,
+        }));
+      } catch (error) {}
 
       window.__ModuleLoader__ = {
         load: function (entry) {
@@ -565,9 +566,9 @@ box-shadow: inset 0 1px 0 var(--dslg-glow), 0 12px 34px var(--dslg-drop);</div>
   <script>
     (function () {
       var params = new URLSearchParams(location.search);
-      if (params.has("panel")) {
-        var fab = document.querySelector("[data-dslg-fab]");
-        if (fab) fab.click();
+      if (params.has("typing")) {
+        var card = document.querySelector("[data-composer-card]");
+        if (card) card.setAttribute("data-dslg-typing", "true");
       }
       if (params.has("hover")) {
         var row = document.querySelector('[data-row-key="session:1"]');
