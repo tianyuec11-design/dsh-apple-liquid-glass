@@ -1,6 +1,6 @@
 # 液态玻璃 · DSH Apple Liquid Glass
 
-给 DeepSeek Harness 的输入框、左侧侧边栏可点击项、模型选择器和发送按钮加一层 Apple 风格的液态玻璃材质；输入框上沿与两侧有一条会轻微流动的蓝色光晕，打字时自动停住。另带一个约 6 秒的 hello 手写开屏动效。强度与开屏动效都在 **设置 → 液态玻璃** 里控制，聊天界面不再有悬浮按钮。页面背景保持不变。
+给 DeepSeek Harness 的输入框、左侧侧边栏可点击项、模型选择器和发送按钮加一层 Apple 风格的液态玻璃材质；输入框上沿与两侧有一条会轻微流动的蓝色光晕，打字时自动停住。另带一个约 6 秒的 hello 手写开屏动效，以及保留原有四项 **作用范围** 开关。强度、作用范围和开屏动效都在 **设置 → 液态玻璃** 里控制，聊天界面不再有悬浮按钮。页面背景保持不变。
 
 ![浅色效果](docs/preview-light.png)
 
@@ -46,7 +46,7 @@ dsh plugin --profile web add 'github:tianyuec11-design/dsh-apple-liquid-glass'
 也可以直接安装固定版本：
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.2.0/dsh-apple-liquid-glass-0.2.0.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.2.1/dsh-apple-liquid-glass-0.2.1.tgz
 ```
 
 > dshmarket 的 **主题** 标签页只列出目录中收录的主题；从 GitHub 安装的这个主题会出现在 **已安装插件** 里，这是正常的。它仍然是一个完整的 bundle 主题插件，可以正常启用/停用。
@@ -79,7 +79,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-会生成 `dsh-apple-liquid-glass-0.2.0.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
+会生成 `dsh-apple-liquid-glass-0.2.1.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
 
 ---
 
@@ -88,6 +88,7 @@ npm pack
 所有控制都在 **设置 → 液态玻璃**，聊天/开始对话界面不再有悬浮按钮。
 
 - **玻璃强度**：0–100% 滑杆，四个快捷档 **关闭 / 轻 / 中 / 强** = 0 / 35 / 65 / 100；拖动立即生效并自动保存。
+- **作用范围**：保留原来的四项独立开关——输入框卡片、左侧栏控件、模型选择器、发送按钮。关掉某一项，它保持原生外观，其余部分不受影响。
 - **开屏动效**：开关。开启时会立即预览一次；之后每次打开 DSH 窗口会话播放一次（同一标签页刷新不会重复播放）。
 - 设置按浏览器保存（`localStorage` 键：`dsh-apple-liquid-glass.settings.v1`），刷新、重启后保留。
 - **0% 不是半透明，而是完全移除主题覆盖**：所有表面回到 DSH 原生渲染，开屏动效仍由独立开关控制。
@@ -118,6 +119,8 @@ npm pack
 
 页面背景、对话气泡、顶部栏、模型下拉菜单本身暂不处理；这些留到后续迭代。
 
+四项范围可以独立开关：关掉输入框卡片时，输入框和蓝光晕保持原生；关掉侧边栏时，所有侧边栏行与图标按钮保持原生；模型选择器和发送按钮同理。
+
 ---
 
 ## 实现说明
@@ -129,6 +132,7 @@ npm pack
 - 指针移动时通过 `--dslg-mx/--dslg-my` 更新高光位置；按压时用 `scale` 做轻微液体回弹，不覆盖宿主自己的 `transform`。
 - 0% 时移除 `body[data-dslg-glass="on"]` 与全部 `--dslg-*` 变量，所有表面选择器失效，原生样式不受影响。
 - 设置区通过 DSH 的 `settings.section` 槽注册（`slots` + `locale`），不向聊天界面添加任何按钮。
+- 作用范围保存为 `surfaces`（composer / sidebar / model / send），控制器把它们写成 `body[data-dslg-composer|sidebar|model|send="on|off"]`，CSS 的每一组表面选择器再按对应属性收窄；关掉一项时只移除那一组覆盖。
 - 开屏动效由纯 DOM 全屏层实现：内嵌 Dancing Script WOFF2、`@property --dslg-reveal` 驱动的软边遮罩、渐变文字与笔尖光点；字体加载完成后才开始书写，避免先闪回退字体。
 - 尊重 `prefers-reduced-motion` 与 `prefers-reduced-transparency`。
 - 深浅色跟随宿主：宿主设置 `body[data-ds-dark-theme]` 时自动切换深色玻璃。
@@ -173,7 +177,7 @@ start .\preview\harness.html
 ## 兼容性
 
 - 要求 DSH **>= 0.2.1-0**。
-- 已在 **DSH 0.2.1-rc.5 Web profile** 实机验证：浅色 / 深色、0% / 62% / 100%、输入时暂停光晕、设置区滑杆与开屏开关、开屏动效播放与跳过。
+- 已在 **DSH 0.2.1-rc.5 Web profile** 实机验证：浅色 / 深色、0% / 62% / 100%、输入时暂停光晕、四项作用范围开关及其刷新持久化、设置区滑杆与开屏开关、开屏动效播放与跳过。
 - 桌面版使用同一套 Web 客户端；设置区依赖宿主的 `settings.section` / `slots` / `locale` 服务，0.2.1 已具备。
 - 只在 Chromium/Electron 内核验证；没有测试 Safari/Firefox。
 

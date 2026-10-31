@@ -1,6 +1,6 @@
 # Liquid Glass — DSH Apple Liquid Glass
 
-An Apple-style liquid-glass material for the DeepSeek Harness web client: composer, sidebar controls, model picker, and send button, with a faint flowing blue glow along the composer's top edge and sides that freezes while you type. A ~6 second handwritten **hello** opening animation is included. Intensity and splash are configured in **Settings → Liquid Glass**; the chat surface has no floating control. The page background stays untouched.
+An Apple-style liquid-glass material for the DeepSeek Harness web client: composer, sidebar controls, model picker, and send button, with a faint flowing blue glow along the composer's top edge and sides that freezes while you type. A ~6 second handwritten **hello** opening animation and the original four per-surface **scope** switches are included. Intensity, scope, and splash are configured in **Settings → Liquid Glass**; the chat surface has no floating control. The page background stays untouched.
 
 ![Light](docs/preview-light.png)
 
@@ -46,7 +46,7 @@ Restart `dsh web` afterwards. `dsh plugin` needs pnpm on `PATH`; the Desktop app
 A pinned release is also available as:
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.2.0/dsh-apple-liquid-glass-0.2.0.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.2.1/dsh-apple-liquid-glass-0.2.1.tgz
 ```
 
 > dshmarket's **Themes** tab only lists themes in its catalog. A GitHub-installed theme appears under **Installed plugins**; it is still a complete bundle theme and can be enabled or disabled normally.
@@ -75,7 +75,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-Then install `dsh-apple-liquid-glass-0.2.0.tgz` through the plugin manager.
+Then install `dsh-apple-liquid-glass-0.2.1.tgz` through the plugin manager.
 
 ---
 
@@ -84,6 +84,7 @@ Then install `dsh-apple-liquid-glass-0.2.0.tgz` through the plugin manager.
 Everything lives in **Settings → Liquid Glass**; the chat surface has no floating button.
 
 - **Glass intensity**: 0–100% slider with presets **Off / Light / Mid / Strong** = 0 / 35 / 65 / 100; applies live and saves automatically.
+- **Surfaces**: the original four independent switches — composer card, sidebar controls, model picker, send button. Turn one off and it keeps its native look while the rest stay glass.
 - **Opening animation**: switch. Enabling it previews once; afterwards it plays once per DSH window session (a same-tab refresh does not repeat it).
 - The choice persists per browser in `localStorage` (key `dsh-apple-liquid-glass.settings.v1`).
 - **0% removes every surface override**; the opening animation remains controlled by its own switch.
@@ -114,6 +115,8 @@ Everything lives in **Settings → Liquid Glass**; the chat surface has no float
 
 The page background, message bubbles, header, and the model dropdown menu itself are out of scope for this version.
 
+Each of the four surfaces can be switched independently: turning off the composer leaves the input card and its blue glow native; turning off the sidebar leaves every row and icon button native; the model picker and send button work the same way.
+
 ---
 
 ## How it works
@@ -125,6 +128,7 @@ The page background, message bubbles, header, and the model dropdown menu itself
 - Pointer movement updates `--dslg-mx/--dslg-my` for a moving specular highlight. Press feedback uses the individual `scale` property so the host's own `transform` survives.
 - At 0% the controller removes `body[data-dslg-glass="on"]` and every `--dslg-*` variable; all surface selectors stop matching.
 - The Settings section registers through DSH's `settings.section` slot (`slots` + `locale`); no button is added to the chat surface.
+- Surface scope is stored as `surfaces` (composer / sidebar / model / send). The controller writes `body[data-dslg-composer|sidebar|model|send="on|off"]`, and every material selector is narrowed by its surface attribute, so turning one off removes only that group of overrides.
 - The opening animation is a full-screen DOM layer: an embedded Dancing Script WOFF2, a soft mask driven by `@property --dslg-reveal`, gradient text, and a pen-tip dot. Writing starts after the font is ready, avoiding a fallback-font flash.
 - `prefers-reduced-motion` and `prefers-reduced-transparency` are respected.
 - Light/dark follows the host through `body[data-ds-dark-theme]`.
@@ -166,7 +170,7 @@ After installing from a local folder, DSH HMR may reload the bundle automaticall
 ## Compatibility
 
 - DSH **>= 0.2.1-0**.
-- Verified on **DSH 0.2.1-rc.5** (web profile): light/dark, 0%/62%/100%, glow pause while typing, settings slider and splash switch, splash playback and skip.
+- Verified on **DSH 0.2.1-rc.5** (web profile): light/dark, 0%/62%/100%, glow pause while typing, all four surface switches and their persistence across reload, settings slider and splash switch, splash playback and skip.
 - Desktop uses the same web client; the settings section relies on the host's `settings.section` / `slots` / `locale` services, available in 0.2.1.
 - Chromium/Electron only; Safari/Firefox are not tested.
 

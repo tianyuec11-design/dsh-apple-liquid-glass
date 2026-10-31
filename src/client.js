@@ -18,6 +18,7 @@ var LOCALE_NS = "dsh-apple-liquid-glass";
 var STORAGE_KEY = "dsh-apple-liquid-glass.settings.v1";
 var SPLASH_SESSION_KEY = "dsh-apple-liquid-glass.splash-played.v1";
 var DEFAULT_LEVEL = 62;
+var SURFACE_KEYS = ["composer", "sidebar", "model", "send"];
 
 var React = null;
 try {
@@ -73,6 +74,16 @@ var LOCALES = {
     "settings.preset.light": "轻",
     "settings.preset.mid": "中",
     "settings.preset.strong": "强",
+    "settings.scope": "作用范围",
+    "settings.scope.description": "关闭某一项，它会保持原生外观，其余部分不受影响。",
+    "settings.scope.composer": "输入框卡片",
+    "settings.scope.composer.hint": "输入卡片，以及卡片里的 + 与访问模式控件",
+    "settings.scope.sidebar": "左侧栏控件",
+    "settings.scope.sidebar.hint": "新建会话、面板行、工作区行、会话行与图标按钮",
+    "settings.scope.model": "模型选择器",
+    "settings.scope.model.hint": "输入框内的模型触发器",
+    "settings.scope.send": "发送按钮",
+    "settings.scope.send.hint": "发送与停止按钮",
     "settings.splash": "开屏动效",
     "settings.splash.description": "打开 DSH 时播放约 6 秒的 hello 书写动画。开启后会立即预览一次，之后每个窗口会话播放一次。",
     "splash.skip": "点击跳过",
@@ -87,6 +98,16 @@ var LOCALES = {
     "settings.preset.light": "Light",
     "settings.preset.mid": "Mid",
     "settings.preset.strong": "Strong",
+    "settings.scope": "Surfaces",
+    "settings.scope.description": "Turn one off and it keeps its native look while the rest stay glass.",
+    "settings.scope.composer": "Composer card",
+    "settings.scope.composer.hint": "The input card, its + control, and the access-mode pill",
+    "settings.scope.sidebar": "Sidebar controls",
+    "settings.scope.sidebar.hint": "New session, panel rows, workspace rows, session rows, and icon buttons",
+    "settings.scope.model": "Model picker",
+    "settings.scope.model.hint": "The model trigger inside the composer",
+    "settings.scope.send": "Send button",
+    "settings.scope.send.hint": "The send and stop button",
     "settings.splash": "Opening animation",
     "settings.splash.description": "Plays a ~6 second handwritten hello when DSH opens. Enabling it previews once; afterwards it plays once per window session.",
     "splash.skip": "Click to skip",
@@ -125,8 +146,22 @@ function clampLevel(value) {
   return Math.min(100, Math.max(0, Math.round(number)));
 }
 
+function defaultSurfaces() {
+  return { composer: true, sidebar: true, model: true, send: true };
+}
+
+function normalizeSurfaces(value) {
+  var source = value !== null && typeof value === "object" ? value : {};
+  return {
+    composer: source.composer !== false,
+    sidebar: source.sidebar !== false,
+    model: source.model !== false,
+    send: source.send !== false,
+  };
+}
+
 function defaultSettings() {
-  return { level: DEFAULT_LEVEL, splashEnabled: true };
+  return { level: DEFAULT_LEVEL, splashEnabled: true, surfaces: defaultSurfaces() };
 }
 
 function parseSettings(value) {
@@ -134,6 +169,7 @@ function parseSettings(value) {
   return {
     level: clampLevel(value.level),
     splashEnabled: typeof value.splashEnabled === "boolean" ? value.splashEnabled : true,
+    surfaces: normalizeSurfaces(value.surfaces),
   };
 }
 
@@ -190,6 +226,15 @@ function applyLevel(level) {
   });
 }
 
+function applyScope(surfaces) {
+  var body = document.body;
+  if (!body) return;
+  for (var index = 0; index < SURFACE_KEYS.length; index += 1) {
+    var key = SURFACE_KEYS[index];
+    body.setAttribute("data-dslg-" + key, surfaces[key] !== false ? "on" : "off");
+  }
+}
+
 function clearLevelVars() {
   var body = document.body;
   if (!body) return;
@@ -198,6 +243,9 @@ function clearLevelVars() {
   }
   body.removeAttribute("data-dslg-glass");
   body.removeAttribute("data-dslg-level");
+  for (var scopeIndex = 0; scopeIndex < SURFACE_KEYS.length; scopeIndex += 1) {
+    body.removeAttribute("data-dslg-" + SURFACE_KEYS[scopeIndex]);
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -227,9 +275,10 @@ function createStore() {
     }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        version: 2,
+        version: 3,
         level: snapshot.level,
         splashEnabled: snapshot.splashEnabled,
+        surfaces: snapshot.surfaces,
       }));
     } catch (error) {
       /* Private mode / disabled storage: keep the in-memory values. */
@@ -267,7 +316,7 @@ function createStore() {
       if (disposed) return;
       var level = clampLevel(next);
       if (level === snapshot.level) return;
-      snapshot = { level: level, splashEnabled: snapshot.splashEnabled };
+      snapshot = { level: level, splashEnabled: snapshot.splashEnabled, surfaces: snapshot.surfaces };
       scheduleSave();
       emit();
     },
@@ -275,7 +324,22 @@ function createStore() {
       if (disposed) return;
       var enabled = next === true;
       if (enabled === snapshot.splashEnabled) return;
-      snapshot = { level: snapshot.level, splashEnabled: enabled };
+      snapshot = { level: snapshot.level, splashEnabled: enabled, surfaces: snapshot.surfaces };
+      saveNow();
+      emit();
+    },
+    setSurface: function (key, next) {
+      if (disposed || SURFACE_KEYS.indexOf(key) < 0) return;
+      var enabled = next === true;
+      if (enabled === snapshot.surfaces[key]) return;
+      var surfaces = {
+        composer: snapshot.surfaces.composer,
+        sidebar: snapshot.surfaces.sidebar,
+        model: snapshot.surfaces.model,
+        send: snapshot.surfaces.send,
+      };
+      surfaces[key] = enabled;
+      snapshot = { level: snapshot.level, splashEnabled: snapshot.splashEnabled, surfaces: surfaces };
       saveNow();
       emit();
     },
@@ -308,16 +372,31 @@ function createMaterial(store) {
   var typingTimer = 0;
 
   function apply() {
-    applyLevel(store.getSnapshot().level);
+    var snapshot = store.getSnapshot();
+    applyLevel(snapshot.level);
+    applyScope(snapshot.surfaces);
   }
 
   var unsubscribe = store.subscribe(apply);
   apply();
 
+  function surfaceKeyFor(element) {
+    if (element.closest("[class*='_sidebarCol']")) return "sidebar";
+    if (element.closest("[data-composer-card]")) {
+      if (element.matches("button[class*='_primary']")) return "send";
+      var aria = element.getAttribute("aria-label") || "";
+      if (/模型|model|modell|modèle|モデル|모델/i.test(aria)) return "model";
+      return "composer";
+    }
+    return null;
+  }
+
   function onPointerMove(event) {
     if (store.getSnapshot().level <= 0 || !(event.target instanceof Element)) return;
     var surface = event.target.closest(SURFACE_SELECTOR);
     if (!surface) return;
+    var key = surfaceKeyFor(surface);
+    if (key === null || store.getSnapshot().surfaces[key] === false) return;
     var rect = surface.getBoundingClientRect();
     if (rect.width < 1 || rect.height < 1) return;
     pendingSurface = {
@@ -347,6 +426,8 @@ function createMaterial(store) {
     if (event.button !== 0 || store.getSnapshot().level <= 0 || !(event.target instanceof Element)) return;
     var surface = event.target.closest(PRESS_SELECTOR);
     if (!surface) return;
+    var key = surfaceKeyFor(surface);
+    if (key === null || store.getSnapshot().surfaces[key] === false) return;
     clearPress();
     pressed = surface;
     surface.classList.add("dslg-pressed");
@@ -567,12 +648,19 @@ function createSettingsComponent(store, splash) {
     var tr = props && typeof props.t === "function" ? props.t : t;
     var level = snapshot.level;
     var enabled = snapshot.splashEnabled;
+    var surfaces = snapshot.surfaces;
     var activePreset = level <= 0 ? 0 : level <= 30 ? 35 : level <= 70 ? 65 : 100;
     var presets = [
       { value: 0, key: "settings.preset.off" },
       { value: 35, key: "settings.preset.light" },
       { value: 65, key: "settings.preset.mid" },
       { value: 100, key: "settings.preset.strong" },
+    ];
+    var scopeItems = [
+      { key: "composer", label: "settings.scope.composer", hint: "settings.scope.composer.hint" },
+      { key: "sidebar", label: "settings.scope.sidebar", hint: "settings.scope.sidebar.hint" },
+      { key: "model", label: "settings.scope.model", hint: "settings.scope.model.hint" },
+      { key: "send", label: "settings.scope.send", hint: "settings.scope.send.hint" },
     ];
 
     return h("section", { className: "dslg-settings", "aria-label": tr("settings.title") },
@@ -619,6 +707,33 @@ function createSettingsComponent(store, splash) {
                 store.setLevel(preset.value);
               },
             }, tr(preset.key));
+          })
+        )
+      ),
+      h("div", { className: "dslg-settings__card" },
+        h("div", { className: "dslg-settings__scope-head" },
+          h("div", { className: "dslg-settings__label" }, tr("settings.scope")),
+          h("p", { className: "dslg-settings__desc" }, tr("settings.scope.description"))
+        ),
+        h("div", { className: "dslg-settings__scope", role: "group", "aria-label": tr("settings.scope") },
+          scopeItems.map(function (item) {
+            var on = surfaces[item.key] !== false;
+            return h("div", { className: "dslg-settings__scope-row", key: item.key },
+              h("div", { className: "dslg-settings__scope-copy" },
+                h("div", { className: "dslg-settings__scope-label" }, tr(item.label)),
+                h("p", { className: "dslg-settings__scope-hint" }, tr(item.hint))
+              ),
+              h("button", {
+                type: "button",
+                role: "switch",
+                className: "dslg-settings__switch dslg-settings__switch--compact" + (on ? " is-on" : ""),
+                "aria-checked": on ? "true" : "false",
+                "aria-label": tr(item.label),
+                onClick: function () {
+                  store.setSurface(item.key, !on);
+                },
+              }, h("span", { className: "dslg-settings__knob", "aria-hidden": "true" }))
+            );
           })
         )
       ),
