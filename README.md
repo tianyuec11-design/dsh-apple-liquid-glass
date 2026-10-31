@@ -89,6 +89,19 @@ Everything lives in **Settings → Liquid Glass**; the chat surface has no float
 - The choice persists per browser in `localStorage` (key `dsh-apple-liquid-glass.settings.v1`).
 - **0% removes every surface override**; the opening animation remains controlled by its own switch.
 
+### Surfaces
+
+In **Settings → Liquid Glass → Surfaces**, each switch is independent:
+
+| Switch | Covers |
+| --- | --- |
+| Composer card | The input card, `+`, access-mode pill, and the blue top/side glow |
+| Sidebar controls | New session, panel rows, workspace rows, session rows, icon buttons, search field |
+| Model picker | The model trigger inside the composer |
+| Send button | Send / stop button |
+
+All four are on by default. Turning one off restores that surface to native immediately while the others stay glass; the choice survives a reload. The blue edge glow belongs to **Composer card**, so turning that off removes it too. At 0% every surface is native, but the four switch states are preserved.
+
 ### Composer edge glow
 
 - When glass is on, a blue gradient halo runs along the composer's top edge and both sides.
@@ -113,9 +126,7 @@ Everything lives in **Settings → Liquid Glass**; the chat surface has no float
 | Model picker | The model trigger inside the composer |
 | Send | Send/stop button |
 
-The page background, message bubbles, header, and the model dropdown menu itself are out of scope for this version.
-
-Each of the four surfaces can be switched independently: turning off the composer leaves the input card and its blue glow native; turning off the sidebar leaves every row and icon button native; the model picker and send button work the same way.
+The page background, message bubbles, header, and the model dropdown menu itself are out of scope for this version. See **Surfaces** above for which switch covers which area.
 
 ---
 
