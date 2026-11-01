@@ -527,9 +527,46 @@ function createSplash(store) {
       '<div class="dslg-splash__glow" aria-hidden="true"></div>',
       '<div class="dslg-splash__stage">',
       '  <div class="dslg-splash__word">',
-      '    <span class="dslg-splash__hello">hello</span>',
-      '    <span class="dslg-splash__pen" aria-hidden="true"></span>',
-      "  </div>",
+      '    <svg class="dslg-splash__svg" viewBox="0 0 1000 400" role="img" aria-label="hello">',
+      '      <defs>',
+      '        <linearGradient id="dslg-hello-fill" x1="0" y1="0" x2="1" y2="0.25">',
+      '          <stop offset="0" stop-color="#ffffff"/>',
+      '          <stop offset="0.16" stop-color="#e8f6ff"/>',
+      '          <stop offset="0.36" stop-color="#9fd4ff"/>',
+      '          <stop offset="0.52" stop-color="#5aa9ff"/>',
+      '          <stop offset="0.70" stop-color="#c9ebff"/>',
+      '          <stop offset="1" stop-color="#ffffff"/>',
+      '        </linearGradient>',
+      '        <linearGradient id="dslg-hello-sheen" x1="0" y1="0" x2="0" y2="1">',
+      '          <stop offset="0" stop-color="#ffffff" stop-opacity="0.82"/>',
+      '          <stop offset="0.56" stop-color="#ffffff" stop-opacity="0"/>',
+      '        </linearGradient>',
+      '        <radialGradient id="dslg-pen-halo">',
+      '          <stop offset="0" stop-color="#c9edff" stop-opacity="0.8"/>',
+      '          <stop offset="1" stop-color="#5aa9ff" stop-opacity="0"/>',
+      '        </radialGradient>',
+      '        <radialGradient id="dslg-pen-dot">',
+      '          <stop offset="0" stop-color="#ffffff"/>',
+      '          <stop offset="0.4" stop-color="#d6f3ff"/>',
+      '          <stop offset="1" stop-color="#5aa9ff"/>',
+      '        </radialGradient>',
+      '        <filter id="dslg-mask-soft" x="-20%" y="-20%" width="140%" height="140%">',
+      '          <feGaussianBlur stdDeviation="5"/>',
+      '        </filter>',
+      '        <mask id="dslg-hello-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="400">',
+      '          <rect width="1000" height="400" fill="#000"/>',
+      '          <path class="dslg-splash__write-path" d="M 331 72 C 322 92 305 128 285 170 C 264 215 250 270 246 318 C 244 333 252 338 261 326 C 279 300 292 262 305 238 C 316 219 331 209 344 213 C 358 218 365 238 365 266 C 365 290 361 309 356 322 C 371 310 382 288 392 262 C 401 240 414 226 424 228 C 435 231 432 254 419 273 C 407 290 397 303 401 314 C 407 328 431 328 449 314 C 461 304 470 290 481 278 C 493 249 510 200 529 155 C 546 115 563 82 575 67 C 583 57 588 72 582 100 C 572 150 551 215 537 267 C 528 301 526 320 531 330 C 539 342 553 334 566 310 C 578 288 589 268 602 248 C 617 210 636 158 652 112 C 661 87 670 70 678 67 C 688 63 690 82 682 116 C 671 167 654 225 641 272 C 633 302 631 321 637 330 C 645 340 659 330 672 307 C 682 289 694 272 706 262 C 718 252 731 248 739 255 C 749 264 748 283 736 296 C 724 309 705 312 694 302 C 685 293 686 278 697 270 C 710 260 728 260 744 256 C 755 253 766 247 772 239" fill="none" stroke="#fff" stroke-width="62" stroke-linecap="round" stroke-linejoin="round" filter="url(#dslg-mask-soft)"/>',
+      '          <rect class="dslg-splash__complete" width="1000" height="400" fill="#fff" opacity="0"/>',
+      '        </mask>',
+      '      </defs>',
+      '      <text class="dslg-splash__text" x="500" y="300" text-anchor="middle" fill="url(#dslg-hello-fill)" mask="url(#dslg-hello-mask)">hello</text>',
+      '      <text class="dslg-splash__text dslg-splash__text--sheen" x="500" y="300" text-anchor="middle" fill="url(#dslg-hello-sheen)" mask="url(#dslg-hello-mask)">hello</text>',
+      '      <g class="dslg-splash__pen-group" opacity="0">',
+      '        <circle r="28" fill="url(#dslg-pen-halo)" opacity="0.55"/>',
+      '        <circle class="dslg-splash__pen-dot" r="8" fill="url(#dslg-pen-dot)"/>',
+      '      </g>',
+      '    </svg>',
+      '  </div>',
       "</div>",
       '<div class="dslg-splash__hint"></div>',
     ].join("\n");
@@ -543,6 +580,67 @@ function createSplash(store) {
     var readyTimer = 0;
     var removeTimer = 0;
     var skipTimer = 0;
+    var writingTimer = 0;
+    var writingRaf = 0;
+
+    function startWriting() {
+      writingTimer = 0;
+      if (gone || leaving) return;
+      var path = overlay.querySelector(".dslg-splash__write-path");
+      var pen = overlay.querySelector(".dslg-splash__pen-group");
+      var complete = overlay.querySelector(".dslg-splash__complete");
+      if (!path || !pen || !complete) return;
+      var length = 0;
+      try {
+        length = path.getTotalLength();
+      } catch (error) {
+        length = 0;
+      }
+      if (!length) {
+        complete.setAttribute("opacity", "1");
+        return;
+      }
+
+      path.style.strokeDasharray = length + "px";
+      path.style.strokeDashoffset = length + "px";
+      var startedAt = 0;
+      var duration = 4700;
+
+      function place(point) {
+        pen.setAttribute("transform", "translate(" + point.x.toFixed(2) + " " + point.y.toFixed(2) + ")");
+      }
+
+      try {
+        place(path.getPointAtLength(0));
+      } catch (error) {
+        /* getPointAtLength can fail during layout; the first frame retries. */
+      }
+      pen.setAttribute("opacity", "1");
+
+      function frame(now) {
+        if (gone || leaving) return;
+        if (startedAt === 0) startedAt = now;
+        var progress = Math.min(1, (now - startedAt) / duration);
+        var eased = progress * progress * (3 - 2 * progress);
+        path.style.strokeDashoffset = String(length * (1 - eased));
+        try {
+          place(path.getPointAtLength(length * eased));
+        } catch (error) {
+          /* Keep the mask moving even if the dot position misses a frame. */
+        }
+        if (progress >= 0.94) {
+          complete.setAttribute("opacity", String(Math.min(1, (progress - 0.94) / 0.06)));
+        }
+        if (progress < 1) {
+          writingRaf = requestAnimationFrame(frame);
+        } else {
+          writingRaf = 0;
+          pen.setAttribute("opacity", "0");
+        }
+      }
+
+      writingRaf = requestAnimationFrame(frame);
+    }
 
     function ready() {
       if (gone || leaving || overlay.classList.contains("is-ready")) return;
@@ -552,9 +650,14 @@ function createSplash(store) {
         readyTimer = 0;
       }
       if (reducedMotion) {
+        var complete = overlay.querySelector(".dslg-splash__complete");
+        if (complete) complete.setAttribute("opacity", "1");
+        var pen = overlay.querySelector(".dslg-splash__pen-group");
+        if (pen) pen.setAttribute("opacity", "0");
         skipTimer = setTimeout(skip, 1900);
       } else {
-        removeTimer = setTimeout(skip, 5400);
+        writingTimer = setTimeout(startWriting, 180);
+        removeTimer = setTimeout(skip, 5500);
       }
     }
 
@@ -564,9 +667,13 @@ function createSplash(store) {
       if (readyTimer !== 0) clearTimeout(readyTimer);
       if (removeTimer !== 0) clearTimeout(removeTimer);
       if (skipTimer !== 0) clearTimeout(skipTimer);
+      if (writingTimer !== 0) clearTimeout(writingTimer);
+      if (writingRaf !== 0) cancelAnimationFrame(writingRaf);
       readyTimer = 0;
       removeTimer = 0;
       skipTimer = 0;
+      writingTimer = 0;
+      writingRaf = 0;
       document.removeEventListener("keydown", onKeyDown, true);
       document.documentElement.classList.remove("dslg-splash-lock");
       overlay.remove();
@@ -607,7 +714,7 @@ function createSplash(store) {
 
     if (document.fonts && typeof document.fonts.load === "function") {
       document.fonts.load('600 1em "DSLG Hello"').then(ready, ready);
-      readyTimer = setTimeout(ready, 700);
+      readyTimer = setTimeout(ready, 400);
     } else {
       ready();
     }
@@ -632,6 +739,388 @@ function createSplash(store) {
     dispose: disposeActive,
     isActive: function () {
       return active !== null;
+    },
+  };
+}
+
+/* --------------------------------------------------------------------------
+   Model-switch particle sphere
+   A small transparent canvas, centred in the viewport. It has no backdrop and
+   no pointer capture: only the luminous particles are visible, and the whole
+   UI stays usable while it flows and while it fades out.
+   -------------------------------------------------------------------------- */
+
+function createModelParticles() {
+  var canvas = null;
+  var ctx = null;
+  var raf = 0;
+  var removeTimer = 0;
+  var resizeHandler = null;
+  var observer = null;
+  var checkTimer = 0;
+  var initTimer = 0;
+  var lastInteractionAt = 0;
+  var lastLabel = "";
+  var labelReady = false;
+  var active = false;
+  var startedAt = 0;
+  var lastElapsed = 0;
+  var size = 0;
+  var dpr = 1;
+  var particles = [];
+  var sprites = [];
+  var reduced = false;
+  var darkTheme = false;
+
+  try {
+    reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (error) {
+    reduced = false;
+  }
+
+  function findTrigger() {
+    var nodes = document.querySelectorAll("[data-composer-card] button[aria-label]");
+    for (var index = 0; index < nodes.length; index += 1) {
+      var node = nodes[index];
+      var label = node.getAttribute("aria-label") || "";
+      if (/模型|model|modell|modèle|モデル|모델/i.test(label) && node.getClientRects().length) return node;
+    }
+    return null;
+  }
+
+  function labelOf(trigger) {
+    return (
+      (trigger.getAttribute("aria-label") || "") + " " +
+      (trigger.getAttribute("title") || "") + " " +
+      (trigger.textContent || "")
+    )
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function onPointerDown(event) {
+    var target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    var trigger = target.closest("[data-composer-card] button[aria-label]");
+    if (trigger && /模型|model|modell|modèle|モデル|모델/i.test(trigger.getAttribute("aria-label") || "")) {
+      lastInteractionAt = Date.now();
+      return;
+    }
+    if (
+      target.closest('[role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]') &&
+      target.closest('button, [role="menuitem"], [role="menuitemradio"], [role="option"]')
+    ) {
+      lastInteractionAt = Date.now();
+    }
+  }
+
+  function onKeyDown(event) {
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+    var target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    var trigger = target.closest("[data-composer-card] button[aria-label]");
+    if (trigger && /模型|model|modell|modèle|モデル|모델/i.test(trigger.getAttribute("aria-label") || "")) {
+      lastInteractionAt = Date.now();
+    } else if (target.closest('[role="menu"], [role="listbox"]')) {
+      lastInteractionAt = Date.now();
+    }
+  }
+
+  function checkLabel() {
+    var trigger = findTrigger();
+    if (!trigger) return;
+    var label = labelOf(trigger);
+    if (!label) return;
+    if (!labelReady) {
+      lastLabel = label;
+      return;
+    }
+    if (label === lastLabel) return;
+    lastLabel = label;
+    if (Date.now() - lastInteractionAt < 15000) {
+      play();
+    }
+  }
+
+  function scheduleCheck() {
+    if (checkTimer !== 0) return;
+    checkTimer = setTimeout(function () {
+      checkTimer = 0;
+      checkLabel();
+    }, 90);
+  }
+
+  function makeSprite(hue, lightness, whiteCore) {
+    var sprite = document.createElement("canvas");
+    sprite.width = 64;
+    sprite.height = 64;
+    var paint = sprite.getContext("2d");
+    var gradient = paint.createRadialGradient(32, 32, 0, 32, 32, 32);
+    var core = whiteCore ? 98 : lightness;
+    var mid = whiteCore ? Math.min(92, lightness + 6) : Math.min(92, lightness + 16);
+    gradient.addColorStop(0, "hsla(" + hue + ", 100%, " + core + "%, 1)");
+    gradient.addColorStop(0.28, "hsla(" + hue + ", 100%, " + mid + "%, 0.96)");
+    gradient.addColorStop(0.64, "hsla(" + hue + ", 98%, " + lightness + "%, 0.42)");
+    gradient.addColorStop(1, "hsla(" + hue + ", 92%, " + lightness + "%, 0)");
+    paint.fillStyle = gradient;
+    paint.fillRect(0, 0, 64, 64);
+    return sprite;
+  }
+
+  function buildSprites() {
+    sprites = darkTheme
+      ? [
+        makeSprite(226, 46, false),
+        makeSprite(222, 54, false),
+        makeSprite(218, 61, false),
+        makeSprite(213, 69, false),
+        makeSprite(208, 76, false),
+        makeSprite(203, 81, false),
+        makeSprite(198, 85, false),
+        makeSprite(193, 92, true),
+      ]
+      : [
+        makeSprite(226, 40, false),
+        makeSprite(222, 46, false),
+        makeSprite(218, 52, false),
+        makeSprite(213, 58, false),
+        makeSprite(208, 65, false),
+        makeSprite(203, 72, false),
+        makeSprite(198, 79, false),
+        makeSprite(193, 88, true),
+      ];
+  }
+
+  function buildParticles() {
+    particles = [];
+    var count = reduced ? 1500 : 3800;
+    var golden = Math.PI * (3 - Math.sqrt(5));
+    for (var index = 0; index < count; index += 1) {
+      var y = 1 - ((index + 0.5) / count) * 2;
+      var lat = Math.asin(y);
+      var lon = index * golden;
+      var depth = (y + 1) / 2;
+      var variant = Math.min(6, Math.floor(depth * 5.8 + Math.random() * 1.2));
+      if (Math.random() < 0.045) variant = 7;
+      particles.push({
+        lat: lat,
+        lon: lon,
+        phase: Math.random() * Math.PI * 2,
+        size: 1.3 + Math.random() * 3.5,
+        alpha: 0.52 + Math.random() * 0.46,
+        variant: variant,
+        glow: Math.random() < 0.38,
+        driftX: Math.cos(Math.random() * Math.PI * 2),
+        driftY: Math.sin(Math.random() * Math.PI * 2),
+      });
+    }
+
+    var bands = reduced ? 1 : 3;
+    var perBand = reduced ? 170 : 240;
+    for (var band = 0; band < bands; band += 1) {
+      for (var point = 0; point < perBand; point += 1) {
+        var angle = (point / perBand) * Math.PI * 2;
+        var bandLat = -0.52 + band * 0.5 + Math.sin(angle * 2 + band * 1.7) * 0.17 + (Math.random() - 0.5) * 0.05;
+        var bandLon = angle + band * 2.1 + Math.cos(angle * 3 + band) * 0.22 + (Math.random() - 0.5) * 0.05;
+        particles.push({
+          lat: Math.max(-1.38, Math.min(1.38, bandLat)),
+          lon: bandLon,
+          phase: Math.random() * Math.PI * 2,
+          size: 1.75 + Math.random() * 3.8,
+          alpha: 0.7 + Math.random() * 0.3,
+          variant: 4 + Math.floor(Math.random() * 3),
+          glow: true,
+          driftX: Math.cos(Math.random() * Math.PI * 2),
+          driftY: Math.sin(Math.random() * Math.PI * 2),
+        });
+      }
+    }
+  }
+
+  function resizeCanvas() {
+    if (!canvas) return;
+    size = Math.round(Math.max(320, Math.min(560, Math.min(window.innerWidth, window.innerHeight) * 0.62)));
+    dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    canvas.style.width = size + "px";
+    canvas.style.height = size + "px";
+    ctx = canvas.getContext("2d");
+    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function draw(elapsed) {
+    if (!ctx || !canvas) return;
+    lastElapsed = elapsed;
+    ctx.clearRect(0, 0, size, size);
+    ctx.globalCompositeOperation = "source-over";
+
+    var t = elapsed / 1000;
+    var fadeStart = reduced ? 1200 : 5000;
+    var fadeDuration = reduced ? 1400 : 5000;
+    var fade = 1;
+    if (elapsed > fadeStart) {
+      fade = Math.max(0, 1 - (elapsed - fadeStart) / fadeDuration);
+      fade = fade * fade * (3 - 2 * fade);
+    }
+    var entrance = Math.min(1, 0.25 + elapsed / 700);
+    var rotation = reduced ? 0.4 : t * 0.12;
+    var tilt = 0.24;
+    var center = size / 2;
+    var radius = size * 0.4;
+
+    for (var index = 0; index < particles.length; index += 1) {
+      var particle = particles[index];
+      var lon = particle.lon + rotation;
+      var lat = particle.lat;
+      if (!reduced) {
+        lon += Math.sin(t * 0.45 + particle.phase) * 0.035;
+        lat += Math.sin(t * 0.33 + particle.phase) * 0.018;
+      }
+      var cosLat = Math.cos(lat);
+      var x = cosLat * Math.sin(lon);
+      var y = Math.sin(lat);
+      var z = cosLat * Math.cos(lon);
+      var y2 = y * Math.cos(tilt) - z * Math.sin(tilt);
+      var z2 = y * Math.sin(tilt) + z * Math.cos(tilt);
+      var depth = (z2 + 1) / 2;
+      var px = center + x * radius;
+      var py = center + y2 * radius;
+
+      if (elapsed > fadeStart) {
+        var drift = Math.min(1, (elapsed - fadeStart) / fadeDuration);
+        drift = drift * drift;
+        px += particle.driftX * drift * size * 0.12;
+        py += particle.driftY * drift * size * 0.12 - drift * size * 0.035;
+      }
+
+      var alpha = (0.16 + depth * 0.7) * fade * entrance * particle.alpha;
+      if (alpha <= 0.004) continue;
+      var scale = particle.size * (1.1 + depth * 1.3);
+      if (elapsed > fadeStart) {
+        scale *= 1 - Math.min(1, (elapsed - fadeStart) / fadeDuration) * 0.4;
+      }
+      if (particle.glow) {
+        var halo = scale * 3.2;
+        ctx.globalAlpha = Math.min(0.18, alpha * 0.22);
+        ctx.drawImage(sprites[particle.variant], px - halo / 2, py - halo / 2, halo, halo);
+      }
+      ctx.globalAlpha = Math.min(1, alpha);
+      ctx.drawImage(sprites[particle.variant], px - scale / 2, py - scale / 2, scale, scale);
+    }
+
+    ctx.globalAlpha = 1;
+    var tint = ctx.createRadialGradient(center, center, radius * 0.25, center, center, radius * 1.06);
+    if (darkTheme) {
+      tint.addColorStop(0, "rgba(90, 180, 255, 0.14)");
+      tint.addColorStop(0.62, "rgba(30, 105, 255, 0.26)");
+      tint.addColorStop(1, "rgba(15, 55, 200, 0.42)");
+    } else {
+      tint.addColorStop(0, "rgba(60, 145, 255, 0.12)");
+      tint.addColorStop(0.62, "rgba(18, 80, 240, 0.24)");
+      tint.addColorStop(1, "rgba(8, 35, 175, 0.38)");
+    }
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.fillStyle = tint;
+    ctx.fillRect(0, 0, size, size);
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  function frame(now) {
+    if (!active || !canvas) return;
+    if (startedAt === 0) startedAt = now;
+    var elapsed = now - startedAt;
+    draw(elapsed);
+    var end = reduced ? 2600 : 10000;
+    if (elapsed >= end) {
+      stop();
+      return;
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  function onResize() {
+    if (!canvas) return;
+    resizeCanvas();
+    buildParticles();
+    draw(lastElapsed);
+  }
+
+  function stop() {
+    active = false;
+    if (raf !== 0) cancelAnimationFrame(raf);
+    if (removeTimer !== 0) clearTimeout(removeTimer);
+    raf = 0;
+    removeTimer = 0;
+    if (resizeHandler) {
+      window.removeEventListener("resize", resizeHandler);
+      resizeHandler = null;
+    }
+    if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    canvas = null;
+    ctx = null;
+    particles = [];
+    sprites = [];
+    startedAt = 0;
+    lastElapsed = 0;
+  }
+
+  function play() {
+    if (!document.body) return;
+    stop();
+    active = true;
+    darkTheme = document.body.hasAttribute("data-ds-dark-theme");
+    canvas = document.createElement("canvas");
+    canvas.className = "dslg-particles";
+    canvas.setAttribute("aria-hidden", "true");
+    document.body.appendChild(canvas);
+    resizeCanvas();
+    if (!canvas || !ctx) {
+      stop();
+      return;
+    }
+    buildSprites();
+    buildParticles();
+    startedAt = performance.now() - 320;
+    draw(320);
+    raf = requestAnimationFrame(frame);
+    removeTimer = setTimeout(stop, reduced ? 2800 : 10400);
+    resizeHandler = onResize;
+    window.addEventListener("resize", resizeHandler, { passive: true });
+    canvas.classList.add("is-on");
+  }
+
+  document.addEventListener("pointerdown", onPointerDown, true);
+  document.addEventListener("keydown", onKeyDown, true);
+  if (document.body) {
+    observer = new MutationObserver(scheduleCheck);
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["aria-label", "title", "data-model"],
+    });
+  }
+  initTimer = setTimeout(function () {
+    initTimer = 0;
+    labelReady = true;
+    var trigger = findTrigger();
+    lastLabel = trigger ? labelOf(trigger) : "";
+  }, 1600);
+
+  return {
+    play: play,
+    dispose: function () {
+      stop();
+      if (observer) observer.disconnect();
+      observer = null;
+      if (checkTimer !== 0) clearTimeout(checkTimer);
+      if (initTimer !== 0) clearTimeout(initTimer);
+      checkTimer = 0;
+      initTimer = 0;
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown, true);
     },
   };
 }
@@ -811,6 +1300,7 @@ function apply(ctx) {
       var store = createStore();
       var material = createMaterial(store);
       var splash = createSplash(store);
+      var modelParticles = createModelParticles();
       var settingsDispose = null;
       try {
         settingsDispose = registerSettings(ctx, store, splash);
@@ -849,6 +1339,7 @@ function apply(ctx) {
           }
         }
         splash.dispose();
+        if (modelParticles) modelParticles.dispose();
         material.dispose();
         store.dispose();
         if (window.__DSH_LIQUID_GLASS_DISPOSE__ === dispose) {

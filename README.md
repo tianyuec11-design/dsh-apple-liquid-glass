@@ -1,6 +1,6 @@
 # Liquid Glass — DSH Apple Liquid Glass
 
-An Apple-style liquid-glass material for the DeepSeek Harness web client: composer, sidebar controls, model picker, and send button, with a faint flowing blue glow along the composer's top edge and sides that freezes while you type. A ~6 second handwritten **hello** opening animation and the original four per-surface **scope** switches are included. Intensity, scope, and splash are configured in **Settings → Liquid Glass**; the chat surface has no floating control. The page background stays untouched.
+An Apple-style liquid-glass material for the DeepSeek Harness web client: composer, sidebar controls, model picker, and send button, with a faint flowing blue glow along the composer's top edge and sides that freezes while you type. The opening **hello** is now drawn along its stroke order, and switching to a different model spawns a centred blue particle sphere. The original four per-surface **scope** switches are preserved. Intensity, scope, and splash are configured in **Settings → Liquid Glass**; the chat surface has no floating control. The page background stays untouched.
 
 ![Light](docs/preview-light.png)
 
@@ -8,7 +8,9 @@ An Apple-style liquid-glass material for the DeepSeek Harness web client: compos
 
 ![Settings](docs/preview-settings.png)
 
-![Opening animation](docs/preview-splash.png)
+![Stroke-order hello](docs/preview-splash-writing.png)
+
+![Model-switch particle sphere](docs/preview-particles.png)
 
 > Captured in a real DSH 0.2.1-rc.5 web profile.
 
@@ -46,7 +48,7 @@ Restart `dsh web` afterwards. `dsh plugin` needs pnpm on `PATH`; the Desktop app
 A pinned release is also available as:
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.2.1/dsh-apple-liquid-glass-0.2.1.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.3.0/dsh-apple-liquid-glass-0.3.0.tgz
 ```
 
 > dshmarket's **Themes** tab only lists themes in its catalog. A GitHub-installed theme appears under **Installed plugins**; it is still a complete bundle theme and can be enabled or disabled normally.
@@ -75,7 +77,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-Then install `dsh-apple-liquid-glass-0.2.1.tgz` through the plugin manager.
+Then install `dsh-apple-liquid-glass-0.3.0.tgz` through the plugin manager.
 
 ---
 
@@ -86,6 +88,7 @@ Everything lives in **Settings → Liquid Glass**; the chat surface has no float
 - **Glass intensity**: 0–100% slider with presets **Off / Light / Mid / Strong** = 0 / 35 / 65 / 100; applies live and saves automatically.
 - **Surfaces**: the original four independent switches — composer card, sidebar controls, model picker, send button. Turn one off and it keeps its native look while the rest stay glass.
 - **Opening animation**: switch. Enabling it previews once; afterwards it plays once per DSH window session (a same-tab refresh does not repeat it).
+- **Model-switch particle sphere**: automatic. After switching to a different model, a centred blue particle sphere flows slowly for 5s and then dissolves over 5s. It is not a full-screen overlay; only the particles occlude, and pointer events stay available throughout.
 - The choice persists per browser in `localStorage` (key `dsh-apple-liquid-glass.settings.v1`).
 - **0% removes every surface override**; the opening animation remains controlled by its own switch.
 
@@ -111,10 +114,19 @@ All four are on by default. Turning one off restores that surface to native imme
 
 ### Opening animation
 
-- An Apple-event-style handwritten lowercase **hello**: a translucent frosted-black stage, a light blue/white gradient, glassy highlights, and a small glowing pen tip drawing left-to-right.
-- About 6 seconds; click anywhere or press `Esc` to skip.
-- The bundled **Dancing Script** font (SIL OFL 1.1) balances a small lowercase script with rounded, even strokes; Snell Roundhand / Apple Chancery are listed as system fallbacks.
+- An Apple-event-style handwritten lowercase **hello** on a translucent frosted-black stage. It is revealed along one centreline path in **h → e → l → l → o** order, with a glowing pen tip following the stroke; it is no longer a flat left-to-right wipe.
+- The bundled **Dancing Script** font (SIL OFL 1.1) and the original light blue/white gradient are unchanged; only the reveal mechanism changed.
+- About 5–7 seconds; click anywhere or press `Esc` to skip.
 - With `prefers-reduced-motion`, a static hello is shown for about 2 seconds.
+
+### Model-switch particle sphere
+
+- After opening the model picker and switching to a **different model**, a centred blue particle sphere appears.
+- It is a ~560px transparent canvas: no full-screen layer, no backdrop, no background. Only the particles themselves occlude; the UI outside the sphere and in the gaps stays visible.
+- The colour is a blue gradient — deep blue at the rim, cyan-blue inside, a few white highlights; not one flat colour.
+- It flows slowly for **5 seconds**, then disperses and fades for **5 seconds** (about 10s total, then removed).
+- The canvas is `pointer-events: none` for its entire lifetime, so scrolling, typing, and clicking work during both the flow and the fade.
+- It fires only when the user has interacted with the model selector recently and the trigger's model label actually changes; initial model hydration does not trigger it. `prefers-reduced-motion` shortens and calms it.
 
 ### Material scope
 
@@ -132,7 +144,7 @@ The page background, message bubbles, header, and the model dropdown menu itself
 
 ## How it works
 
-- Pure CSS material, a tiny DOM controller, and a React settings section; the material and opening animation have no third-party dependency.
+- Pure CSS material, a tiny DOM controller, a React settings section, and a 2D canvas particle layer; none of them needs a third-party runtime dependency.
 - The composer's `backdrop-filter` lives on a `::before` pseudo-element so the card never becomes the backdrop root of its fixed-position popups; `isolation: isolate` keeps the stacking local.
 - The blue edge glow lives on the card's `::after`: two side gradients plus a top gradient animated through `background-position`. While typing, the controller sets `data-dslg-typing="true"` on the card and CSS pauses the animation.
 - Sidebar styling targets clickable elements, never the whole column, so the background stays native.
@@ -140,9 +152,11 @@ The page background, message bubbles, header, and the model dropdown menu itself
 - At 0% the controller removes `body[data-dslg-glass="on"]` and every `--dslg-*` variable; all surface selectors stop matching.
 - The Settings section registers through DSH's `settings.section` slot (`slots` + `locale`); no button is added to the chat surface.
 - Surface scope is stored as `surfaces` (composer / sidebar / model / send). The controller writes `body[data-dslg-composer|sidebar|model|send="on|off"]`, and every material selector is narrowed by its surface attribute, so turning one off removes only that group of overrides.
-- The opening animation is a full-screen DOM layer: an embedded Dancing Script WOFF2, a soft mask driven by `@property --dslg-reveal`, gradient text, and a pen-tip dot. Writing starts after the font is ready, avoiding a fallback-font flash.
+- The opening animation is a full-screen DOM layer with an embedded Dancing Script WOFF2, an SVG mask path that follows the h→e→l→l→o centreline, gradient text, and a pen-tip dot. `getTotalLength()` / `getPointAtLength()` keep the mask and the tip in sync; writing starts after the font is ready.
+- The model-switch sphere is a 2D canvas: Fibonacci sphere + three flowing ribbons, theme-aware blue/cyan sprites, and a `source-atop` gradient tint. It is ~560px, pointer-transparent, and is removed after 5s of flow + 5s of fade.
+- The model trigger is watched with a `MutationObserver` on its accessible name/text. The sphere only plays when the user interacted with the model selector in the last 15s and the model label actually changed, so initial model hydration does not fire it.
 - `prefers-reduced-motion` and `prefers-reduced-transparency` are respected.
-- Light/dark follows the host through `body[data-ds-dark-theme]`.
+- Light/dark follows the host through `body[data-ds-dark-theme]`; the particle palette adapts to the theme.
 
 ### Files
 
@@ -154,8 +168,8 @@ dsh-apple-liquid-glass/
 │  ├─ index.js               # host half: intentional no-op
 │  └─ client.js              # built browser bundle
 ├─ src/
-│  ├─ client.js              # material, settings, splash source
-│  └─ style.css              # material, settings, splash styles
+│  ├─ client.js              # material, settings, splash, particle source
+│  └─ style.css              # material, settings, splash, particle styles
 ├─ assets/
 │  ├─ fonts/                 # Dancing Script WOFF2 + OFL
 │  └─ icon.svg
@@ -181,7 +195,8 @@ After installing from a local folder, DSH HMR may reload the bundle automaticall
 ## Compatibility
 
 - DSH **>= 0.2.1-0**.
-- Verified on **DSH 0.2.1-rc.5** (web profile): light/dark, 0%/62%/100%, glow pause while typing, all four surface switches and their persistence across reload, settings slider and splash switch, splash playback and skip.
+- Verified on **DSH 0.2.1-rc.5** (web profile): light/dark, 0%/62%/100%, glow pause while typing, all four surface switches and their persistence across reload, settings slider and splash switch, stroke-order writing and skip, and the particle sphere's transparent occlusion / pointer pass-through / 5+5s timing / auto-removal.
+- The model-switch trigger path was verified against the real model trigger: changing its accessible name/text starts the sphere. The dev profile had no selectable models, so a real menu-item click was not available; the watcher uses the same post-switch label change in a normal host.
 - Desktop uses the same web client; the settings section relies on the host's `settings.section` / `slots` / `locale` services, available in 0.2.1.
 - Chromium/Electron only; Safari/Firefox are not tested.
 
@@ -191,6 +206,9 @@ After installing from a local folder, DSH HMR may reload the bundle automaticall
 - Small sidebar icon buttons get the material on hover/focus only, to avoid a wall of blur.
 - No SVG edge refraction yet; the current material is blur + saturation + translucent tint + specular highlight + bevel + shadow.
 - The opening animation is an approximation of Apple's event style, not Apple's proprietary artwork; it uses bundled Dancing Script with Snell Roundhand / Apple Chancery as system fallbacks.
+- The stroke reveal uses one centreline mask path plus a wide soft stroke, not per-glyph vector strokes; the font and blue/white gradient are unchanged.
+- The model-switch particle sphere is a stylised particle approximation of the reference image, not the image asset itself. It stays around 560px and never becomes a full-screen layer.
+- The sphere only appears when the model label changes after a recent model-selector interaction; initial hydration and same-model selection do not fire it. There is no separate switch; reduced-motion shortens it.
 - The splash plays once per window session; a same-tab refresh does not repeat it. Toggle it off and on in Settings to preview again.
 - The glow resumes about 1.1s after the last keystroke by design.
 - No wallpaper and no page-background changes.

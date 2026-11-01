@@ -1,6 +1,6 @@
 # 液态玻璃 · DSH Apple Liquid Glass
 
-给 DeepSeek Harness 的输入框、左侧侧边栏可点击项、模型选择器和发送按钮加一层 Apple 风格的液态玻璃材质；输入框上沿与两侧有一条会轻微流动的蓝色光晕，打字时自动停住。另带一个约 6 秒的 hello 手写开屏动效，以及保留原有四项 **作用范围** 开关。强度、作用范围和开屏动效都在 **设置 → 液态玻璃** 里控制，聊天界面不再有悬浮按钮。页面背景保持不变。
+给 DeepSeek Harness 的输入框、左侧侧边栏可点击项、模型选择器和发送按钮加一层 Apple 风格的液态玻璃材质；输入框上沿与两侧有一条会轻微流动的蓝色光晕，打字时自动停住。开屏的 **hello** 现在按 h→e→l→l→o 的笔顺书写，另带一个切换模型时出现的居中蓝色粒子球；原有四项 **作用范围** 开关保留。强度、作用范围和开屏动效都在 **设置 → 液态玻璃** 里控制，聊天界面不再有悬浮按钮。页面背景保持不变。
 
 ![浅色效果](docs/preview-light.png)
 
@@ -8,9 +8,11 @@
 
 ![设置页](docs/preview-settings.png)
 
-![开屏动效](docs/preview-splash.png)
+![按笔顺书写 hello](docs/preview-splash-writing.png)
 
-> 截图来自真实的 DSH 0.2.1-rc.5 Web profile。主题不修改页面背景，只处理指定控件与开屏层。
+![模型切换粒子球](docs/preview-particles.png)
+
+> 截图来自真实的 DSH 0.2.1-rc.5 Web profile。主题不修改页面背景，只处理指定控件、开屏层与模型切换粒子层。
 
 ---
 
@@ -46,7 +48,7 @@ dsh plugin --profile web add 'github:tianyuec11-design/dsh-apple-liquid-glass'
 也可以直接安装固定版本：
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.2.1/dsh-apple-liquid-glass-0.2.1.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.3.0/dsh-apple-liquid-glass-0.3.0.tgz
 ```
 
 > dshmarket 的 **主题** 标签页只列出目录中收录的主题；从 GitHub 安装的这个主题会出现在 **已安装插件** 里，这是正常的。它仍然是一个完整的 bundle 主题插件，可以正常启用/停用。
@@ -79,7 +81,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-会生成 `dsh-apple-liquid-glass-0.2.1.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
+会生成 `dsh-apple-liquid-glass-0.3.0.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
 
 ---
 
@@ -90,6 +92,7 @@ npm pack
 - **玻璃强度**：0–100% 滑杆，四个快捷档 **关闭 / 轻 / 中 / 强** = 0 / 35 / 65 / 100；拖动立即生效并自动保存。
 - **作用范围**：保留原来的四项独立开关——输入框卡片、左侧栏控件、模型选择器、发送按钮。关掉某一项，它保持原生外观，其余部分不受影响。
 - **开屏动效**：开关。开启时会立即预览一次；之后每次打开 DSH 窗口会话播放一次（同一标签页刷新不会重复播放）。
+- **模型切换粒子球**：自动触发，无需开关。切换模型后出现一个居中的蓝色粒子球，缓慢流动 5 秒，再用 5 秒慢慢泯灭；它不是全屏遮罩，只有粒子本身有遮挡，指针全程可以穿透，界面照常操作。
 - 设置按浏览器保存（`localStorage` 键：`dsh-apple-liquid-glass.settings.v1`），刷新、重启后保留。
 - **0% 不是半透明，而是完全移除主题覆盖**：所有表面回到 DSH 原生渲染，开屏动效仍由独立开关控制。
 
@@ -115,10 +118,19 @@ npm pack
 
 ### 开屏动效
 
-- 仿 Apple 活动开场的写法：半透明磨砂黑背景，浅蓝白渐变的 lowercase **hello** 从左到右书写，带一点玻璃高光和笔尖光点。
-- 时长约 6 秒；点击任意位置或 `Esc` 可跳过。
-- 字体使用随插件打包的 **Dancing Script**（SIL OFL 1.1），在小写花体、圆润和均匀粗细之间取平衡；同时列出 Snell Roundhand / Apple Chancery 作为系统后备。
-- `prefers-reduced-motion` 下显示静态 hello，约 2 秒后淡出。
+- 仿 Apple 活动开场：半透明磨砂黑背景，浅蓝白渐变的 lowercase **hello** 沿着一条中心笔迹路径书写，顺序是 **h → e → l → l → o**；笔尖光点跟着笔画走，不再是整行平铺揭开。
+- 字体仍是随插件打包的 **Dancing Script**（SIL OFL 1.1），颜色仍是原来的浅蓝白渐变；只改变出现方式，不改字体和配色。
+- 约 5–7 秒；点击任意位置或 `Esc` 可跳过。
+- `prefers-reduced-motion` 下直接显示静态 hello，约 2 秒后淡出。
+
+### 模型切换粒子球
+
+- 在输入框里点开模型选择器并切换到**不同的模型**后，自动出现一个居中的蓝色粒子球。
+- 粒子球是一个约 560px 的透明 canvas，**没有全屏遮罩、没有背景、没有 backdrop**；只有粒子本身遮挡，球外和粒子间隙里的界面都看得见。
+- 颜色是渐变蓝：外缘深蓝、内部青蓝、少量白色高光；不是单一颜色。
+- 先缓慢流动 **5 秒**，再用 **5 秒**逐渐向外扩散、变淡，总计约 10 秒后移除。
+- 整个过程中 canvas 都是 `pointer-events: none`，从出现到泯灭都不会拦截鼠标或键盘，界面随时可操作。
+- 只有「用户刚操作过模型选择器，且触发器上的模型名发生变化」才会触发；启动时模型自动加载不会误触发。`prefers-reduced-motion` 下会缩短并减弱为静态粒子球。
 
 ### 玻璃范围
 
@@ -136,7 +148,7 @@ npm pack
 
 ## 实现说明
 
-- **纯 CSS 材质 + 一个轻量 DOM 控制器 + 一个 React 设置区**；材质与开屏动效不依赖第三方库。
+- **纯 CSS 材质 + 一个轻量 DOM 控制器 + 一个 React 设置区 + 一个 canvas 粒子层**；材质、开屏和粒子球都不依赖第三方库。
 - 输入卡的 `backdrop-filter` 放在 `::before` 伪元素上，避免把输入卡变成内部 fixed 弹层的 backdrop root；层叠用 `isolation: isolate` 隔离。
 - 输入框蓝光晕放在卡片的 `::after` 伪元素上，用两条侧边渐变 + 一条上沿渐变和 `background-position` 动画实现；打字时控制器给卡片加 `data-dslg-typing="true"`，CSS 暂停动画。
 - 侧边栏只处理可点击元素本身，不绘制整个侧边栏，因此背景保持原样。
@@ -144,9 +156,11 @@ npm pack
 - 0% 时移除 `body[data-dslg-glass="on"]` 与全部 `--dslg-*` 变量，所有表面选择器失效，原生样式不受影响。
 - 设置区通过 DSH 的 `settings.section` 槽注册（`slots` + `locale`），不向聊天界面添加任何按钮。
 - 作用范围保存为 `surfaces`（composer / sidebar / model / send），控制器把它们写成 `body[data-dslg-composer|sidebar|model|send="on|off"]`，CSS 的每一组表面选择器再按对应属性收窄；关掉一项时只移除那一组覆盖。
-- 开屏动效由纯 DOM 全屏层实现：内嵌 Dancing Script WOFF2、`@property --dslg-reveal` 驱动的软边遮罩、渐变文字与笔尖光点；字体加载完成后才开始书写，避免先闪回退字体。
+- 开屏动效由纯 DOM 全屏层实现：内嵌 Dancing Script WOFF2、一条按 h→e→l→l→o 中心笔迹绘制的 SVG 遮罩路径、渐变文字与跟随笔尖；`getTotalLength()` / `getPointAtLength()` 同步遮罩进度和光点位置，字体加载完成后才开始书写。
+- 模型切换粒子球由 2D canvas 实现：Fibonacci 球面分布 + 三条流动光带、按深浅色选择的蓝色/青色 sprite、`source-atop` 渐变染色；约 560px 画布，`pointer-events: none`，5 秒流动 + 5 秒扩散淡出后移除。
+- 模型切换靠 `MutationObserver` 监听输入框模型触发器上的可访问名称/文本；只有最近 15 秒内用户操作过模型选择器、且模型名确实变化时才播放，避免启动自动加载误触发。
 - 尊重 `prefers-reduced-motion` 与 `prefers-reduced-transparency`。
-- 深浅色跟随宿主：宿主设置 `body[data-ds-dark-theme]` 时自动切换深色玻璃。
+- 深浅色跟随宿主：宿主设置 `body[data-ds-dark-theme]` 时自动切换深色玻璃；粒子球也按深浅色选择更合适的蓝色层级。
 
 ### 文件结构
 
@@ -158,8 +172,8 @@ dsh-apple-liquid-glass/
 │  ├─ index.js               # 宿主半：空实现
 │  └─ client.js              # 构建产物，浏览器半
 ├─ src/
-│  ├─ client.js              # 材质、设置区、开屏动效源码
-│  └─ style.css              # 材质、设置区、开屏动效样式
+│  ├─ client.js              # 材质、设置区、开屏、粒子球源码
+│  └─ style.css              # 材质、设置区、开屏、粒子层样式
 ├─ assets/
 │  ├─ fonts/                 # Dancing Script WOFF2 + OFL
 │  └─ icon.svg
@@ -188,7 +202,8 @@ start .\preview\harness.html
 ## 兼容性
 
 - 要求 DSH **>= 0.2.1-0**。
-- 已在 **DSH 0.2.1-rc.5 Web profile** 实机验证：浅色 / 深色、0% / 62% / 100%、输入时暂停光晕、四项作用范围开关及其刷新持久化、设置区滑杆与开屏开关、开屏动效播放与跳过。
+- 已在 **DSH 0.2.1-rc.5 Web profile** 实机验证：浅色 / 深色、0% / 62% / 100%、输入时暂停光晕、四项作用范围开关及其刷新持久化、设置区滑杆与开屏开关、按笔顺书写与跳过、粒子球的透明遮挡 / 指针穿透 / 5+5 秒节奏 / 自动移除。
+- 模型切换触发链路通过真实模型触发器验证：触发器的可访问名称和文本变化会启动粒子球；开发 profile 的模型列表为空，所以没有做真实选模型项的端到端点击，但监听的是同一条“切换后标签变化”路径。
 - 桌面版使用同一套 Web 客户端；设置区依赖宿主的 `settings.section` / `slots` / `locale` 服务，0.2.1 已具备。
 - 只在 Chromium/Electron 内核验证；没有测试 Safari/Firefox。
 
@@ -198,6 +213,9 @@ start .\preview\harness.html
 - 侧边栏里的小图标按钮为了性能和视觉克制，只在悬停/聚焦时出现玻璃；主要行是常驻玻璃。
 - 还没有 SVG 边缘折射；目前是「模糊 + 饱和度 + 透明染色 + 高光 + 倒角 + 阴影」的 CSS 材质。
 - 开屏动效是 Apple 开场风格的近似，不是 Apple 官方素材；字体使用开源的 Dancing Script，并以 Snell Roundhand / Apple Chancery 作为系统后备。
+- 开屏用一条中心笔迹路径 + 宽遮罩来近似真实笔顺，不是逐字形的矢量笔顺；字体和蓝白渐变保持不变。
+- 模型切换粒子球是参考图风格的粒子近似，不是原图素材；球体约 560px，只出现在视口中央，不会铺满全屏。
+- 粒子球只在“最近操作过模型选择器且模型名变化”时出现；初始自动加载模型、切换到同名模型不会播放。没有单独的开关，`prefers-reduced-motion` 下会自动缩短。
 - 开屏动效按窗口会话只播放一次；同一标签页刷新不会重复。需要再次观看可在设置里关闭再打开开关，会立即预览。
 - 光晕在停止输入约 1.1 秒后恢复流动；这是有意的时间窗，避免每个按键都重置动画。
 - 不使用壁纸，不修改页面背景。想要更强的「透出桌面壁纸」效果，需要后续增加背景层或桌面透明支持。

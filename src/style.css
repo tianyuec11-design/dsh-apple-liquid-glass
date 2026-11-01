@@ -888,75 +888,48 @@ html.dslg-splash-lock {
 
 .dslg-splash__word {
   position: relative;
-  display: inline-block;
+  display: block;
+  width: min(76vw, 800px);
+  max-width: 800px;
   line-height: 1;
 }
 
-@property --dslg-reveal {
-  syntax: "<percentage>";
-  inherits: false;
-  initial-value: 0%;
+.dslg-splash__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
 }
 
-.dslg-splash__hello {
-  --dslg-reveal: 0%;
-  position: relative;
-  display: inline-block;
+.dslg-splash__text {
   font-family: "DSLG Hello", "Snell Roundhand", "Apple Chancery", "Segoe Script", cursive;
-  font-size: clamp(96px, 16vw, 250px);
+  font-size: 320px;
   font-weight: 600;
   font-style: normal;
-  line-height: 1;
   letter-spacing: -0.015em;
-  white-space: nowrap;
-  color: transparent;
-  background: linear-gradient(102deg, #ffffff 0%, #e8f6ff 16%, #9fd4ff 36%, #5aa9ff 52%, #c9ebff 70%, #ffffff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.35);
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1.2;
+  paint-order: stroke;
   filter: drop-shadow(0 0 24px rgba(88, 166, 255, 0.42)) drop-shadow(0 10px 44px rgba(32, 88, 210, 0.22));
-  opacity: 0.94;
-  -webkit-mask-image: linear-gradient(90deg, #000 0 var(--dslg-reveal), transparent calc(var(--dslg-reveal) + 7%));
-  mask-image: linear-gradient(90deg, #000 0 var(--dslg-reveal), transparent calc(var(--dslg-reveal) + 7%));
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
+  pointer-events: none;
 }
 
-.dslg-splash__hello::after {
-  position: absolute;
-  inset: 0;
-  color: transparent;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0) 56%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-stroke: 0;
+.dslg-splash__text--sheen {
   opacity: 0.44;
-  content: "hello";
+  stroke: none;
+}
+
+.dslg-splash__write-path {
   pointer-events: none;
 }
 
-.dslg-splash.is-ready .dslg-splash__hello {
-  animation: dslg-hello-write 4.6s 0.4s cubic-bezier(0.35, 0, 0.15, 1) forwards;
-}
-
-.dslg-splash__pen {
-  position: absolute;
-  top: 56%;
-  left: 0;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffffff 0 18%, #c9edff 44%, #5aa9ff 100%);
-  box-shadow:
-    0 0 10px 3px rgba(170, 220, 255, 0.8),
-    0 0 30px 12px rgba(80, 150, 255, 0.35);
-  opacity: 0;
-  transform: translate(-50%, -50%);
+.dslg-splash__pen-group {
+  filter: drop-shadow(0 0 8px rgba(150, 220, 255, 0.85));
   pointer-events: none;
 }
 
-.dslg-splash.is-ready .dslg-splash__pen {
-  animation: dslg-pen-move 4.6s 0.4s cubic-bezier(0.35, 0, 0.15, 1) forwards;
+.dslg-splash__pen-dot {
+  pointer-events: none;
 }
 
 .dslg-splash__hint {
@@ -982,18 +955,6 @@ html.dslg-splash-lock {
   to { opacity: 0; }
 }
 
-@keyframes dslg-hello-write {
-  from { --dslg-reveal: 0%; }
-  to { --dslg-reveal: 108%; }
-}
-
-@keyframes dslg-pen-move {
-  0% { left: 0; opacity: 0; }
-  8% { opacity: 1; }
-  88% { opacity: 1; }
-  100% { left: 100%; opacity: 0; }
-}
-
 @keyframes dslg-splash-hint-in {
   to { opacity: 1; }
 }
@@ -1003,14 +964,15 @@ html.dslg-splash-lock {
   to { translate: 3% -2%; scale: 1.04; }
 }
 
-.dslg-splash.is-reduced .dslg-splash__hello {
-  --dslg-reveal: 108%;
-  -webkit-mask-image: none;
-  mask-image: none;
-  animation: none;
+.dslg-splash.is-reduced .dslg-splash__write-path {
+  display: none;
 }
 
-.dslg-splash.is-reduced .dslg-splash__pen {
+.dslg-splash.is-reduced .dslg-splash__complete {
+  opacity: 1;
+}
+
+.dslg-splash.is-reduced .dslg-splash__pen-group {
   display: none;
 }
 
@@ -1024,25 +986,24 @@ html.dslg-splash-lock {
   }
 
   .dslg-splash__glow,
-  .dslg-splash__hello,
-  .dslg-splash__pen,
+  .dslg-splash__text,
+  .dslg-splash__pen-group,
   .dslg-splash__hint {
     animation: none !important;
     transition: none !important;
   }
 
-  .dslg-splash__hello {
-    --dslg-reveal: 108%;
-    -webkit-mask-image: none;
-    mask-image: none;
+  .dslg-splash__write-path,
+  .dslg-splash__pen-group {
+    display: none;
+  }
+
+  .dslg-splash__complete {
+    opacity: 1;
   }
 
   .dslg-splash__hint {
     opacity: 0.55;
-  }
-
-  .dslg-splash__pen {
-    display: none;
   }
 
   .dslg-settings__range::-webkit-slider-thumb,
@@ -1062,6 +1023,23 @@ html.dslg-splash-lock {
   .dslg-settings__card {
     background: var(--dslg-settings-surface);
   }
+}
+
+.dslg-particles {
+  position: fixed;
+  z-index: 2147482500;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  filter: saturate(1.35) contrast(1.08);
+  transition: opacity 260ms ease-out;
+}
+
+.dslg-particles.is-on {
+  opacity: 1;
 }
 
 @media (max-width: 720px) {
@@ -1122,13 +1100,18 @@ html.dslg-splash-lock {
     background: Canvas;
   }
 
-  .dslg-splash__hello,
-  .dslg-splash__hello::after {
-    color: CanvasText;
-    background: none;
-    -webkit-text-stroke: 0;
+  .dslg-splash__text {
+    fill: CanvasText;
+    stroke: none;
     filter: none;
-    -webkit-mask-image: none;
-    mask-image: none;
+  }
+
+  .dslg-splash__write-path,
+  .dslg-splash__pen-group {
+    display: none;
+  }
+
+  .dslg-splash__complete {
+    opacity: 1;
   }
 }
