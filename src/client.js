@@ -736,12 +736,18 @@ function createDynamicIsland() {
     '    </div>',
     '    <button class="dslg-island__gear" type="button" aria-label="液态玻璃设置">',
     '      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Zm8.1 4.9v-2.2l-2.1-.8a7.2 7.2 0 0 0-.7-1.7l1-2-1.6-1.6-2 1a7.2 7.2 0 0 0-1.7-.7L12.2 3H10l-.8 2.1a7.2 7.2 0 0 0-1.7.7l-2-1-1.6 1.6 1 2a7.2 7.2 0 0 0-.7 1.7l-2.1.8v2.2l2.1.8c.2.6.4 1.2.7 1.7l-1 2 1.6 1.6 2-1c.5.3 1.1.5 1.7.7l.8 2.1h2.2l.8-2.1c.6-.2 1.2-.4 1.7-.7l2 1 1.6-1.6-1-2c.3-.5.5-1.1.7-1.7l2.1-.8Z"/></svg>',
+    '      <span>液态玻璃设置</span>',
     '    </button>',
     '  </div>',
     '  <div class="dslg-island__tabs" role="tablist" aria-label="会话视图">',
     '    <button class="dslg-island__tab is-active" type="button" data-dslg-tab="对话">对话</button>',
     '    <button class="dslg-island__tab" type="button" data-dslg-tab="轨迹">轨迹</button>',
     '    <button class="dslg-island__more" type="button" aria-label="更多">…</button>',
+    '  </div>',
+    '  <div class="dslg-island__meta">',
+    '    <span class="dslg-island__time">00:00:00</span>',
+    '    <span class="dslg-island__balance">余额 —</span>',
+    '    <span class="dslg-island__context">上下文 —</span>',
     '  </div>',
     '</div>',
   ].join("");
@@ -752,6 +758,9 @@ function createDynamicIsland() {
   var modeEl = host.querySelector(".dslg-island__mode");
   var gear = host.querySelector(".dslg-island__gear");
   var more = host.querySelector(".dslg-island__more");
+  var timeEl = host.querySelector(".dslg-island__time");
+  var balanceEl = host.querySelector(".dslg-island__balance");
+  var contextEl = host.querySelector(".dslg-island__context");
   var tabButtons = Array.prototype.slice.call(host.querySelectorAll("[data-dslg-tab]"));
   var isOpen = false;
   var isBusy = false;
@@ -759,6 +768,7 @@ function createDynamicIsland() {
   var headerVisibility = "";
   var pollTimer = 0;
   var headerTimer = 0;
+  var metaTimer = 0;
   var settingTimers = [];
 
   function visible(element) {
@@ -892,6 +902,36 @@ function createDynamicIsland() {
     host.setAttribute("aria-label", isBusy ? "灵动岛，DSH 正在思考" : "灵动岛，当前空闲");
   }
 
+  function readContextUsage() {
+    var candidates = document.querySelectorAll('[class*="context"], [class*="Context"], [class*="meter"], [class*="Meter"], [data-context-usage]');
+    for (var index = 0; index < candidates.length; index += 1) {
+      var node = candidates[index];
+      if (insideHost(node) || !visible(node)) continue;
+      var text = textOf(node);
+      if (text.length > 40) continue;
+      var match = text.match(/~?[\d.]+[KkMm]?\s*\/\s*[\d.]+[KkMm]?/);
+      if (match) return match[0];
+    }
+    return "—";
+  }
+
+  function readBalance() {
+    var candidates = document.querySelectorAll('[class*="balance"], [class*="Balance"], [aria-label*="余额"], [aria-label*="balance" i]');
+    for (var index = 0; index < candidates.length; index += 1) {
+      var node = candidates[index];
+      if (insideHost(node) || !visible(node)) continue;
+      var text = textOf(node);
+      if (text.length <= 30 && /[¥$]\s?[\d.,]+|余额/.test(text)) return text;
+    }
+    return "—";
+  }
+
+  function updateMeta() {
+    if (timeEl) timeEl.textContent = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    if (balanceEl) balanceEl.textContent = "余额 " + readBalance();
+    if (contextEl) contextEl.textContent = "上下文 " + readContextUsage();
+  }
+
   function place() {
     var composer = document.querySelector("[data-composer-card]");
     var center = window.innerWidth / 2;
@@ -1006,6 +1046,7 @@ function createDynamicIsland() {
   window.addEventListener("resize", place);
   updateHeader();
   updateBusy();
+  updateMeta();
   place();
   pollTimer = setInterval(function () {
     updateBusy();
@@ -1014,13 +1055,16 @@ function createDynamicIsland() {
   headerTimer = setInterval(function () {
     if (isOpen && !hiddenHeader) updateHeader();
   }, 1600);
+  metaTimer = setInterval(updateMeta, 1000);
 
   return {
     dispose: function () {
       if (pollTimer !== 0) clearInterval(pollTimer);
       if (headerTimer !== 0) clearInterval(headerTimer);
+      if (metaTimer !== 0) clearInterval(metaTimer);
       pollTimer = 0;
       headerTimer = 0;
+      metaTimer = 0;
       settingTimers.forEach(function (timer) { clearTimeout(timer); });
       settingTimers = [];
       restoreHeader();
