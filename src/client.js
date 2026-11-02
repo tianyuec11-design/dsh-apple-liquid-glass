@@ -717,7 +717,7 @@ function createSplash(store) {
    tabs and the Liquid Glass settings shortcut.
    -------------------------------------------------------------------------- */
 
-function createDynamicIsland() {
+function createDynamicIsland(store, splash) {
   if (!document.body) return { dispose: function () {} };
 
   var host = document.createElement("div");
@@ -753,6 +753,43 @@ function createDynamicIsland() {
   ].join("");
   document.body.appendChild(host);
 
+  var panel = document.createElement("div");
+  panel.className = "dslg-island-panel";
+  panel.setAttribute("aria-hidden", "true");
+  panel.innerHTML = [
+    '<div class="dslg-island-panel__head">',
+    '  <span>液态玻璃</span>',
+    '  <button class="dslg-island-panel__close" type="button" aria-label="关闭">×</button>',
+    '</div>',
+    '<div class="dslg-island-panel__body">',
+    '  <div class="dslg-island-panel__section">',
+    '    <div class="dslg-island-panel__line"><span>玻璃强度</span><strong class="dslg-island-panel__value">62%</strong></div>',
+    '    <input class="dslg-island-panel__range" type="range" min="0" max="100" step="1" aria-label="玻璃强度">',
+    '    <div class="dslg-island-panel__presets">',
+    '      <button type="button" data-preset="0">关闭</button>',
+    '      <button type="button" data-preset="35">轻</button>',
+    '      <button type="button" data-preset="65">中</button>',
+    '      <button type="button" data-preset="100">强</button>',
+    '    </div>',
+    '  </div>',
+    '  <div class="dslg-island-panel__section">',
+    '    <div class="dslg-island-panel__caption">作用范围</div>',
+    '    <div class="dslg-island-panel__scope">',
+    '      <div class="dslg-island-panel__scope-row"><div><b>输入框卡片</b><small>输入卡、+ 与访问模式</small></div><button type="button" role="switch" data-surface="composer" aria-checked="true"><span></span></button></div>',
+    '      <div class="dslg-island-panel__scope-row"><div><b>左侧栏控件</b><small>会话行、工作区、图标按钮</small></div><button type="button" role="switch" data-surface="sidebar" aria-checked="true"><span></span></button></div>',
+    '      <div class="dslg-island-panel__scope-row"><div><b>模型选择器</b><small>输入框内的模型触发器</small></div><button type="button" role="switch" data-surface="model" aria-checked="true"><span></span></button></div>',
+    '      <div class="dslg-island-panel__scope-row"><div><b>发送按钮</b><small>发送与停止按钮</small></div><button type="button" role="switch" data-surface="send" aria-checked="true"><span></span></button></div>',
+    '    </div>',
+    '  </div>',
+    '  <div class="dslg-island-panel__line dslg-island-panel__splash">',
+    '    <div><b>开屏动效</b><small>约 6 秒 hello 书写动画</small></div>',
+    '    <button type="button" role="switch" class="dslg-island-panel__splash-switch" aria-checked="true"><span></span></button>',
+    '  </div>',
+    '</div>',
+  ].join("");
+  document.body.appendChild(panel);
+  var panelOpen = false;
+
   var dot = host.querySelector(".dslg-island__dot");
   var titleEl = host.querySelector(".dslg-island__title");
   var modeEl = host.querySelector(".dslg-island__mode");
@@ -762,6 +799,13 @@ function createDynamicIsland() {
   var balanceEl = host.querySelector(".dslg-island__balance");
   var contextEl = host.querySelector(".dslg-island__context");
   var tabButtons = Array.prototype.slice.call(host.querySelectorAll("[data-dslg-tab]"));
+  var panelRange = panel.querySelector(".dslg-island-panel__range");
+  var panelValue = panel.querySelector(".dslg-island-panel__value");
+  var panelPresets = Array.prototype.slice.call(panel.querySelectorAll("[data-preset]"));
+  var panelSurfaces = Array.prototype.slice.call(panel.querySelectorAll("[data-surface]"));
+  var panelSplash = panel.querySelector(".dslg-island-panel__splash-switch");
+  var panelClose = panel.querySelector(".dslg-island-panel__close");
+  var liveBalance = { text: "—", at: 0, busy: false };
   var isOpen = false;
   var isBusy = false;
   var hiddenHeader = null;
@@ -770,6 +814,7 @@ function createDynamicIsland() {
   var headerTimer = 0;
   var metaTimer = 0;
   var settingTimers = [];
+  var unsubscribePanel = null;
 
   function visible(element) {
     return !!element && element.getClientRects().length > 0;
@@ -882,16 +927,31 @@ function createDynamicIsland() {
   }
 
   function busyNow() {
-    var send = document.querySelector('[data-composer-card] button[class*="_primary"]');
-    if (send) {
-      var label = ((send.getAttribute("aria-label") || "") + " " + (send.getAttribute("title") || "")).toLowerCase();
-      if (/停止|stop|cancel|取消/.test(label)) return true;
+    var nodes = Array.prototype.slice.call(document.querySelectorAll(
+      '[aria-busy="true"], [data-running="true"], [data-state="running"], [data-state="streaming"], [class*="running"], [class*="streaming"], [class*="thinking"], [class*="generating"]'
+    ));
+    for (var index = 0; index < nodes.length; index += 1) {
+      var node = nodes[index];
+      if (insideHost(node) || !visible(node)) continue;
+      var state = (
+        (node.getAttribute("aria-label") || "") + " " +
+        (node.getAttribute("title") || "") + " " +
+        (node.getAttribute("data-state") || "") + " " +
+        (node.textContent || "") + " " +
+        String(node.className || "")
+      ).toLowerCase();
+      if (/停止|stop|running|streaming|thinking|generating|思考中|生成中|正在/.test(state)) return true;
     }
-    if (document.querySelector('[aria-busy="true"]')) return true;
-    var buttons = Array.prototype.slice.call(document.querySelectorAll("button"));
-    return buttons.some(function (button) {
-      return visible(button) && /停止生成|stop generating/i.test((button.getAttribute("aria-label") || "") + " " + (button.textContent || ""));
-    });
+    var buttons = Array.prototype.slice.call(document.querySelectorAll("button, [role='button']"));
+    for (var buttonIndex = 0; buttonIndex < buttons.length; buttonIndex += 1) {
+      var button = buttons[buttonIndex];
+      if (insideHost(button) || !visible(button)) continue;
+      var label = ((button.getAttribute("aria-label") || "") + " " + (button.getAttribute("title") || "") + " " + (button.textContent || "")).toLowerCase();
+      if (/停止生成|停止|stop generating|stop|cancel|取消/.test(label)) return true;
+    }
+    var composer = document.querySelector("[data-composer-card]");
+    if (composer && /停止生成|正在思考|生成中|思考中|stop generating/i.test(composer.textContent || "")) return true;
+    return false;
   }
 
   function updateBusy() {
@@ -899,7 +959,45 @@ function createDynamicIsland() {
     if (next === isBusy) return;
     isBusy = next;
     host.classList.toggle("is-busy", isBusy);
+    host.setAttribute("data-busy", isBusy ? "true" : "false");
     host.setAttribute("aria-label", isBusy ? "灵动岛，DSH 正在思考" : "灵动岛，当前空闲");
+  }
+
+  function overlapsIsland(node) {
+    if (!node || insideHost(node) || panel.contains(node)) return false;
+    if (!visible(node)) return false;
+    var style = window.getComputedStyle(node);
+    if (style.position !== "fixed" && style.position !== "absolute") return false;
+    var zIndex = parseInt(style.zIndex, 10) || 0;
+    if (zIndex < 100 && !node.matches('[role="dialog"], [role="alertdialog"], [role="menu"], [data-radix-popper-content-wrapper], .dslg-splash')) return false;
+    var other = node.getBoundingClientRect();
+    var own = host.getBoundingClientRect();
+    if (other.width < 2 || other.height < 2) return false;
+    var isPopup = node.matches('[role="dialog"], [role="alertdialog"], [role="menu"], [data-radix-popper-content-wrapper], .dslg-splash');
+    if (!isPopup && other.width * other.height < window.innerWidth * window.innerHeight * 0.25) return false;
+    var margin = 8;
+    return !(
+      other.right < own.left - margin ||
+      other.left > own.right + margin ||
+      other.bottom < own.top - margin ||
+      other.top > own.bottom + margin
+    );
+  }
+
+  function updateConflict() {
+    var nodes = Array.prototype.slice.call(document.querySelectorAll(
+      '[role="dialog"], [role="alertdialog"], [role="menu"], [data-radix-popper-content-wrapper], [class*="mask"], [class*="Mask"], [class*="overlay"], [class*="Overlay"], .dslg-splash'
+    ));
+    var conflict = false;
+    for (var index = 0; index < nodes.length; index += 1) {
+      if (overlapsIsland(nodes[index])) {
+        conflict = true;
+        break;
+      }
+    }
+    if (conflict === host.classList.contains("is-conflicted")) return;
+    host.classList.toggle("is-conflicted", conflict);
+    if (conflict) closePanel();
   }
 
   function readContextUsage() {
@@ -928,7 +1026,9 @@ function createDynamicIsland() {
 
   function updateMeta() {
     if (timeEl) timeEl.textContent = new Date().toLocaleTimeString("zh-CN", { hour12: false });
-    if (balanceEl) balanceEl.textContent = "余额 " + readBalance();
+    refreshBalance();
+    var balance = liveBalance.text !== "—" ? liveBalance.text : readBalance();
+    if (balanceEl) balanceEl.textContent = "余额 " + balance;
     if (contextEl) contextEl.textContent = "上下文 " + readContextUsage();
   }
 
@@ -975,33 +1075,112 @@ function createDynamicIsland() {
     setOpen(!isOpen);
   }
 
+  function renderPanel() {
+    var snapshot = store.getSnapshot();
+    if (panelRange) {
+      panelRange.value = String(snapshot.level);
+      panelRange.style.setProperty("--dslg-fill", snapshot.level + "%");
+    }
+    if (panelValue) panelValue.textContent = snapshot.level + "%";
+    var activePreset = snapshot.level <= 0 ? 0 : snapshot.level <= 30 ? 35 : snapshot.level <= 70 ? 65 : 100;
+    panelPresets.forEach(function (button) {
+      button.classList.toggle("is-active", Number(button.getAttribute("data-preset")) === activePreset);
+    });
+    panelSurfaces.forEach(function (button) {
+      var key = button.getAttribute("data-surface");
+      var on = snapshot.surfaces[key] !== false;
+      button.classList.toggle("is-on", on);
+      button.setAttribute("aria-checked", on ? "true" : "false");
+    });
+    if (panelSplash) {
+      panelSplash.classList.toggle("is-on", snapshot.splashEnabled);
+      panelSplash.setAttribute("aria-checked", snapshot.splashEnabled ? "true" : "false");
+    }
+  }
+
+  function placePanel() {
+    if (!panelOpen) return;
+    var rect = host.getBoundingClientRect();
+    var width = Math.min(window.innerWidth - 24, 430);
+    panel.style.width = width + "px";
+    var left = Math.max(12, Math.min(window.innerWidth - width - 12, rect.left + rect.width / 2 - width / 2));
+    panel.style.left = Math.round(left) + "px";
+    panel.style.top = Math.round(rect.bottom + 10) + "px";
+  }
+
+  function togglePanel(next) {
+    var value = typeof next === "boolean" ? next : !panelOpen;
+    if (value === panelOpen) return;
+    panelOpen = value;
+    panel.classList.toggle("is-on", panelOpen);
+    panel.setAttribute("aria-hidden", panelOpen ? "false" : "true");
+    if (panelOpen) {
+      renderPanel();
+      placePanel();
+    }
+  }
+
+  function closePanel() {
+    togglePanel(false);
+  }
+
+  function refreshBalance() {
+    if (liveBalance.busy || Date.now() - liveBalance.at < 12000) return;
+    if (typeof fetch !== "function") return;
+    liveBalance.busy = true;
+    liveBalance.at = Date.now();
+    fetch("/dsh-apple-liquid-glass/balance", { cache: "no-store" })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (data) {
+        if (data && data.ok) {
+          var symbol = data.currency === "USD" ? "$" : data.currency === "CNY" ? "¥" : "";
+          liveBalance.text = symbol + data.total;
+        }
+      })
+      .catch(function () {
+        /* The island falls back to DOM values or —. */
+      })
+      .then(function () {
+        liveBalance.busy = false;
+      });
+  }
+
   function onGearClick(event) {
     event.preventDefault();
     event.stopPropagation();
-    setOpen(false);
-    openSettings();
+    togglePanel(!panelOpen);
   }
 
-  function openSettings() {
-    settingTimers.forEach(function (timer) { clearTimeout(timer); });
-    settingTimers = [];
-    var account = document.querySelector('button[aria-label*="账号菜单"]');
-    if (!account) {
-      var direct = document.querySelector('button[aria-label*="设置"]');
-      if (direct) direct.click();
-      return;
-    }
-    account.click();
-    settingTimers.push(setTimeout(function () {
-      var settings = Array.prototype.slice.call(document.querySelectorAll('button, [role="menuitem"], a'))
-        .filter(function (node) { return visible(node) && textOf(node) === "设置"; })[0];
-      if (settings) settings.click();
-      settingTimers.push(setTimeout(function () {
-        var glass = Array.prototype.slice.call(document.querySelectorAll('button, [role="menuitem"], a, [role="tab"]'))
-          .filter(function (node) { return visible(node) && textOf(node) === "液态玻璃"; })[0];
-        if (glass) glass.click();
-      }, 450));
-    }, 260));
+  function onPanelClose(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    closePanel();
+  }
+
+  function onRangeInput(event) {
+    store.setLevel(event.currentTarget.value);
+  }
+
+  function onPresetClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    store.setLevel(Number(event.currentTarget.getAttribute("data-preset")));
+  }
+
+  function onSurfaceClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    var key = event.currentTarget.getAttribute("data-surface");
+    var on = store.getSnapshot().surfaces[key] !== false;
+    store.setSurface(key, !on);
+  }
+
+  function onSplashClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    var next = !store.getSnapshot().splashEnabled;
+    store.setSplashEnabled(next);
+    if (next && splash) splash.play({ force: true });
   }
 
   function onTabClick(event) {
@@ -1026,11 +1205,21 @@ function createDynamicIsland() {
   }
 
   function onOutside(event) {
-    if (isOpen && !host.contains(event.target)) setOpen(false);
+    if (panelOpen && !panel.contains(event.target) && !host.contains(event.target)) {
+      closePanel();
+      return;
+    }
+    if (isOpen && !host.contains(event.target) && !panel.contains(event.target)) setOpen(false);
   }
 
   function onKeyDown(event) {
-    if (event.key === "Escape" && isOpen) setOpen(false);
+    if (event.key === "Escape") {
+      if (panelOpen) {
+        closePanel();
+        return;
+      }
+      if (isOpen) setOpen(false);
+    }
     if ((event.key === "Enter" || event.key === " ") && event.target === host) {
       event.preventDefault();
       setOpen(!isOpen);
@@ -1042,15 +1231,27 @@ function createDynamicIsland() {
   gear.addEventListener("click", onGearClick);
   more.addEventListener("click", onMoreClick);
   tabButtons.forEach(function (button) { button.addEventListener("click", onTabClick); });
+  panelClose.addEventListener("click", onPanelClose);
+  panelRange.addEventListener("input", onRangeInput);
+  panelPresets.forEach(function (button) { button.addEventListener("click", onPresetClick); });
+  panelSurfaces.forEach(function (button) { button.addEventListener("click", onSurfaceClick); });
+  panelSplash.addEventListener("click", onSplashClick);
+  unsubscribePanel = store.subscribe(function () {
+    if (panelOpen) renderPanel();
+  });
   document.addEventListener("pointerdown", onOutside, true);
   window.addEventListener("resize", place);
+  window.addEventListener("resize", placePanel);
   updateHeader();
   updateBusy();
   updateMeta();
+  updateConflict();
   place();
   pollTimer = setInterval(function () {
     updateBusy();
+    updateConflict();
     place();
+    placePanel();
   }, 360);
   headerTimer = setInterval(function () {
     if (isOpen && !hiddenHeader) updateHeader();
@@ -1065,12 +1266,15 @@ function createDynamicIsland() {
       pollTimer = 0;
       headerTimer = 0;
       metaTimer = 0;
+      if (typeof unsubscribePanel === "function") unsubscribePanel();
       settingTimers.forEach(function (timer) { clearTimeout(timer); });
       settingTimers = [];
       restoreHeader();
       document.removeEventListener("pointerdown", onOutside, true);
       window.removeEventListener("resize", place);
+      window.removeEventListener("resize", placePanel);
       host.remove();
+      panel.remove();
     },
   };
 }
@@ -1647,7 +1851,7 @@ function apply(ctx) {
       var store = createStore();
       var material = createMaterial(store);
       var splash = createSplash(store);
-      var island = createDynamicIsland();
+      var island = createDynamicIsland(store, splash);
       var modelParticles = createModelParticles();
       var settingsDispose = null;
       try {

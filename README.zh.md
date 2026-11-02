@@ -50,7 +50,7 @@ dsh plugin --profile web add 'github:tianyuec11-design/dsh-apple-liquid-glass'
 也可以直接安装固定版本：
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.4.1/dsh-apple-liquid-glass-0.4.1.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.4.3/dsh-apple-liquid-glass-0.4.3.tgz
 ```
 
 > dshmarket 的 **主题** 标签页只列出目录中收录的主题；从 GitHub 安装的这个主题会出现在 **已安装插件** 里，这是正常的。它仍然是一个完整的 bundle 主题插件，可以正常启用/停用。
@@ -83,7 +83,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-会生成 `dsh-apple-liquid-glass-0.4.1.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
+会生成 `dsh-apple-liquid-glass-0.4.3.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
 
 ---
 
@@ -145,7 +145,7 @@ npm pack
   - 当前会话标题；
   - 模式（如「标准模式」）；
   - 「对话 / 轨迹」标签；
-  - 液态玻璃设置齿轮按钮，点击直接打开 **设置 → 液态玻璃**。
+  - 液态玻璃设置齿轮按钮，点击直接打开灵动岛内的液态玻璃设置框。
 - 展开时原顶部会话栏会暂时隐藏，避免重复；收起或点击外部/按 `Esc` 后恢复。
 
 ### 玻璃范围
@@ -261,3 +261,5 @@ MIT。见 [LICENSE](LICENSE)。
 开屏字体 **Dancing Script** © The Dancing Script Project Authors，按 SIL Open Font License 1.1 分发；完整许可见 [assets/fonts/OFL.txt](assets/fonts/OFL.txt)。
 
 「Liquid Glass」在这里描述视觉材质；本项目与 Apple Inc. 无隶属或背书关系。
+
+
