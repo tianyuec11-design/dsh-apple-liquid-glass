@@ -1,6 +1,6 @@
 # Liquid Glass — DSH Apple Liquid Glass
 
-An Apple-style liquid-glass material for the DeepSeek Harness web client: composer, sidebar controls, model picker, and send button, with a faint flowing blue glow along the composer's top edge and sides that freezes while you type. The opening **hello** is now drawn along its stroke order, and switching to a different model spawns a centred blue particle sphere. The original four per-surface **scope** switches are preserved. Intensity, scope, and splash are configured in **Settings → Liquid Glass**; the chat surface has no floating control. The page background stays untouched.
+An Apple-style liquid-glass material for the DeepSeek Harness web client: composer, sidebar controls, model picker, and send button, with a faint flowing blue glow along the composer's top edge and sides that freezes while you type. The opening **hello** follows its stroke order, switching models spawns a small particle orb above the model trigger, and a Dynamic Island at the top integrates the conversation header and Liquid Glass settings. The original four per-surface **scope** switches are preserved. Intensity, scope, and splash are configured in **Settings → Liquid Glass**. The page background stays untouched.
 
 ![Light](docs/preview-light.png)
 
@@ -8,9 +8,11 @@ An Apple-style liquid-glass material for the DeepSeek Harness web client: compos
 
 ![Settings](docs/preview-settings.png)
 
-![Stroke-order hello](docs/preview-splash-writing.png)
+![Dynamic Island collapsed](docs/preview-island-collapsed.png)
 
-![Model-switch particle sphere](docs/preview-particles.png)
+![Dynamic Island expanded](docs/preview-island-open.png)
+
+![Model-switch particle orb](docs/preview-particles.png)
 
 > Captured in a real DSH 0.2.1-rc.5 web profile.
 
@@ -48,7 +50,7 @@ Restart `dsh web` afterwards. `dsh plugin` needs pnpm on `PATH`; the Desktop app
 A pinned release is also available as:
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.3.0/dsh-apple-liquid-glass-0.3.0.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.4.0/dsh-apple-liquid-glass-0.4.0.tgz
 ```
 
 > dshmarket's **Themes** tab only lists themes in its catalog. A GitHub-installed theme appears under **Installed plugins**; it is still a complete bundle theme and can be enabled or disabled normally.
@@ -77,7 +79,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-Then install `dsh-apple-liquid-glass-0.3.0.tgz` through the plugin manager.
+Then install `dsh-apple-liquid-glass-0.4.0.tgz` through the plugin manager.
 
 ---
 
@@ -87,8 +89,9 @@ Everything lives in **Settings → Liquid Glass**; the chat surface has no float
 
 - **Glass intensity**: 0–100% slider with presets **Off / Light / Mid / Strong** = 0 / 35 / 65 / 100; applies live and saves automatically.
 - **Surfaces**: the original four independent switches — composer card, sidebar controls, model picker, send button. Turn one off and it keeps its native look while the rest stay glass.
+- **Dynamic Island**: a 5cm × 1cm glass pill at 1cm from the top, centred on the composer column. Collapsed it has no text, only a state dot 1cm from its left (red while DSH is thinking, green when idle). Click to expand into the conversation title, mode, chat/trajectory tabs, and the Liquid Glass settings shortcut.
 - **Opening animation**: switch. Enabling it previews once; afterwards it plays once per DSH window session (a same-tab refresh does not repeat it).
-- **Model-switch particle sphere**: automatic. After switching to a different model, a centred blue particle sphere flows slowly for 5s and then dissolves over 5s. It is not a full-screen overlay; only the particles occlude, and pointer events stay available throughout.
+- **Model-switch particle orb**: automatic. After switching to a different model, a ~1/6-size blue orb appears just above the model trigger, flows for 5s and fades for 5s. It is transparent and pointer-transparent.
 - The choice persists per browser in `localStorage` (key `dsh-apple-liquid-glass.settings.v1`).
 - **0% removes every surface override**; the opening animation remains controlled by its own switch.
 
@@ -114,19 +117,24 @@ All four are on by default. Turning one off restores that surface to native imme
 
 ### Opening animation
 
-- An Apple-event-style handwritten lowercase **hello** on a translucent frosted-black stage. It is revealed along one centreline path in **h → e → l → l → o** order, with a glowing pen tip following the stroke; it is no longer a flat left-to-right wipe.
-- The bundled **Dancing Script** font (SIL OFL 1.1) and the original light blue/white gradient are unchanged; only the reveal mechanism changed.
+- An Apple-event-style handwritten lowercase **hello** on a translucent frosted-black stage. It is revealed along one centreline path in **h → e → l → l → o** order; the tracking dot is gone and a wider soft mask keeps letters complete as they appear.
+- The bundled **Dancing Script** font (SIL OFL 1.1) and the original light blue/white gradient are unchanged.
 - About 5–7 seconds; click anywhere or press `Esc` to skip.
 - With `prefers-reduced-motion`, a static hello is shown for about 2 seconds.
 
-### Model-switch particle sphere
+### Model-switch particle orb
 
-- After opening the model picker and switching to a **different model**, a centred blue particle sphere appears.
-- It is a ~560px transparent canvas: no full-screen layer, no backdrop, no background. Only the particles themselves occlude; the UI outside the sphere and in the gaps stays visible.
-- The colour is a blue gradient — deep blue at the rim, cyan-blue inside, a few white highlights; not one flat colour.
-- It flows slowly for **5 seconds**, then disperses and fades for **5 seconds** (about 10s total, then removed).
-- The canvas is `pointer-events: none` for its entire lifetime, so scrolling, typing, and clicking work during both the flow and the fade.
-- It fires only when the user has interacted with the model selector recently and the trigger's model label actually changes; initial model hydration does not trigger it. `prefers-reduced-motion` shortens and calms it.
+- After opening the model picker and switching to a **different model**, a blue particle orb appears just above the model trigger.
+- It is now about **1/6** of the previous size (96px canvas) instead of a centred 560px sphere. The 5s flow + 5s fade, gradient-blue palette and pointer transparency are unchanged.
+- Only the particles occlude; the UI around the orb remains visible and usable.
+- It fires only when the user has interacted with the model selector recently and the model label actually changes. Reduced-motion shortens it.
+
+### Dynamic Island
+
+- A glass pill centred on the composer column, **1cm from the top**, **5cm × 1cm** collapsed, with the same material as the composer.
+- Collapsed it displays **no text**, only a dot 1cm from the left: red while DSH is thinking/generating, green when idle.
+- Click to expand into the conversation title, mode, 对话/轨迹 tabs, and a Liquid Glass settings gear that opens **Settings → Liquid Glass**.
+- The original header is temporarily hidden while expanded to avoid duplication; outside click or `Esc` restores it.
 
 ### Material scope
 
@@ -153,7 +161,8 @@ The page background, message bubbles, header, and the model dropdown menu itself
 - The Settings section registers through DSH's `settings.section` slot (`slots` + `locale`); no button is added to the chat surface.
 - Surface scope is stored as `surfaces` (composer / sidebar / model / send). The controller writes `body[data-dslg-composer|sidebar|model|send="on|off"]`, and every material selector is narrowed by its surface attribute, so turning one off removes only that group of overrides.
 - The opening animation is a full-screen DOM layer with an embedded Dancing Script WOFF2, an SVG mask path that follows the h→e→l→l→o centreline, gradient text, and a pen-tip dot. `getTotalLength()` / `getPointAtLength()` keep the mask and the tip in sync; writing starts after the font is ready.
-- The model-switch sphere is a 2D canvas: Fibonacci sphere + three flowing ribbons, theme-aware blue/cyan sprites, and a `source-atop` gradient tint. It is ~560px, pointer-transparent, and is removed after 5s of flow + 5s of fade.
+- The model-switch orb is a 96px 2D canvas: Fibonacci sphere + two flowing ribbons, theme-aware blue/cyan sprites, and a `source-atop` gradient tint. It is positioned just above the model trigger, pointer-transparent, and removed after 5s of flow + 5s of fade.
+- The Dynamic Island is a fixed glass pill sized 5cm × 1cm at top 1cm, horizontally centred from the composer's bounding box. It expands to 680px × 150px. The state dot watches the composer's primary button `aria-label` (e.g. 停止生成) and `aria-busy`; the expanded header is read from the host title/mode/tab DOM and temporarily hidden behind the island.
 - The model trigger is watched with a `MutationObserver` on its accessible name/text. The sphere only plays when the user interacted with the model selector in the last 15s and the model label actually changed, so initial model hydration does not fire it.
 - `prefers-reduced-motion` and `prefers-reduced-transparency` are respected.
 - Light/dark follows the host through `body[data-ds-dark-theme]`; the particle palette adapts to the theme.
@@ -207,7 +216,7 @@ After installing from a local folder, DSH HMR may reload the bundle automaticall
 - No SVG edge refraction yet; the current material is blur + saturation + translucent tint + specular highlight + bevel + shadow.
 - The opening animation is an approximation of Apple's event style, not Apple's proprietary artwork; it uses bundled Dancing Script with Snell Roundhand / Apple Chancery as system fallbacks.
 - The stroke reveal uses one centreline mask path plus a wide soft stroke, not per-glyph vector strokes; the font and blue/white gradient are unchanged.
-- The model-switch particle sphere is a stylised particle approximation of the reference image, not the image asset itself. It stays around 560px and never becomes a full-screen layer.
+- The model-switch particle orb is a stylised particle approximation of the reference image, not the image asset itself. It is about 96px and sits above the model trigger instead of centring on the viewport.
 - The sphere only appears when the model label changes after a recent model-selector interaction; initial hydration and same-model selection do not fire it. There is no separate switch; reduced-motion shortens it.
 - The splash plays once per window session; a same-tab refresh does not repeat it. Toggle it off and on in Settings to preview again.
 - The glow resumes about 1.1s after the last keystroke by design.

@@ -1,7 +1,7 @@
 {
   "name": "dsh-apple-liquid-glass",
-  "version": "0.3.0",
-  "description": "Apple-style liquid glass for the DSH web client: composer with a flowing blue edge glow, per-surface scope switches, sidebar controls, model picker and send button, a stroke-order handwritten hello opening, and a centred blue particle sphere after switching models. Settings-only intensity/scope; the page background stays untouched.",
+  "version": "0.4.0",
+  "description": "Apple-style liquid glass for the DSH web client with a Dynamic Island, composer edge glow, per-surface scope switches, stroke-order hello opening, and a small model-switch particle orb above the model picker. Settings-only controls; the page background stays untouched.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

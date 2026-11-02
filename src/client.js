@@ -541,30 +541,17 @@ function createSplash(store) {
       '          <stop offset="0" stop-color="#ffffff" stop-opacity="0.82"/>',
       '          <stop offset="0.56" stop-color="#ffffff" stop-opacity="0"/>',
       '        </linearGradient>',
-      '        <radialGradient id="dslg-pen-halo">',
-      '          <stop offset="0" stop-color="#c9edff" stop-opacity="0.8"/>',
-      '          <stop offset="1" stop-color="#5aa9ff" stop-opacity="0"/>',
-      '        </radialGradient>',
-      '        <radialGradient id="dslg-pen-dot">',
-      '          <stop offset="0" stop-color="#ffffff"/>',
-      '          <stop offset="0.4" stop-color="#d6f3ff"/>',
-      '          <stop offset="1" stop-color="#5aa9ff"/>',
-      '        </radialGradient>',
       '        <filter id="dslg-mask-soft" x="-20%" y="-20%" width="140%" height="140%">',
-      '          <feGaussianBlur stdDeviation="5"/>',
+      '          <feGaussianBlur stdDeviation="8"/>',
       '        </filter>',
       '        <mask id="dslg-hello-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="400">',
       '          <rect width="1000" height="400" fill="#000"/>',
-      '          <path class="dslg-splash__write-path" d="M 331 72 C 322 92 305 128 285 170 C 264 215 250 270 246 318 C 244 333 252 338 261 326 C 279 300 292 262 305 238 C 316 219 331 209 344 213 C 358 218 365 238 365 266 C 365 290 361 309 356 322 C 371 310 382 288 392 262 C 401 240 414 226 424 228 C 435 231 432 254 419 273 C 407 290 397 303 401 314 C 407 328 431 328 449 314 C 461 304 470 290 481 278 C 493 249 510 200 529 155 C 546 115 563 82 575 67 C 583 57 588 72 582 100 C 572 150 551 215 537 267 C 528 301 526 320 531 330 C 539 342 553 334 566 310 C 578 288 589 268 602 248 C 617 210 636 158 652 112 C 661 87 670 70 678 67 C 688 63 690 82 682 116 C 671 167 654 225 641 272 C 633 302 631 321 637 330 C 645 340 659 330 672 307 C 682 289 694 272 706 262 C 718 252 731 248 739 255 C 749 264 748 283 736 296 C 724 309 705 312 694 302 C 685 293 686 278 697 270 C 710 260 728 260 744 256 C 755 253 766 247 772 239" fill="none" stroke="#fff" stroke-width="62" stroke-linecap="round" stroke-linejoin="round" filter="url(#dslg-mask-soft)"/>',
+      '          <path class="dslg-splash__write-path" d="M 331 72 C 322 92 305 128 285 170 C 264 215 250 270 246 318 C 244 333 252 338 261 326 C 279 300 292 262 305 238 C 316 219 331 209 344 213 C 358 218 365 238 365 266 C 365 290 361 309 356 322 C 371 310 382 288 392 262 C 401 240 414 226 424 228 C 435 231 432 254 419 273 C 407 290 397 303 401 314 C 407 328 431 328 449 314 C 461 304 470 290 481 278 C 493 249 510 200 529 155 C 546 115 563 82 575 67 C 583 57 588 72 582 100 C 572 150 551 215 537 267 C 528 301 526 320 531 330 C 539 342 553 334 566 310 C 578 288 589 268 602 248 C 617 210 636 158 652 112 C 661 87 670 70 678 67 C 688 63 690 82 682 116 C 671 167 654 225 641 272 C 633 302 631 321 637 330 C 645 340 659 330 672 307 C 682 289 694 272 706 262 C 718 252 731 248 739 255 C 749 264 748 283 736 296 C 724 309 705 312 694 302 C 685 293 686 278 697 270 C 710 260 728 260 744 256 C 755 253 766 247 772 239" fill="none" stroke="#fff" stroke-width="118" stroke-linecap="round" stroke-linejoin="round" filter="url(#dslg-mask-soft)"/>',
       '          <rect class="dslg-splash__complete" width="1000" height="400" fill="#fff" opacity="0"/>',
       '        </mask>',
       '      </defs>',
       '      <text class="dslg-splash__text" x="500" y="300" text-anchor="middle" fill="url(#dslg-hello-fill)" mask="url(#dslg-hello-mask)">hello</text>',
       '      <text class="dslg-splash__text dslg-splash__text--sheen" x="500" y="300" text-anchor="middle" fill="url(#dslg-hello-sheen)" mask="url(#dslg-hello-mask)">hello</text>',
-      '      <g class="dslg-splash__pen-group" opacity="0">',
-      '        <circle r="28" fill="url(#dslg-pen-halo)" opacity="0.55"/>',
-      '        <circle class="dslg-splash__pen-dot" r="8" fill="url(#dslg-pen-dot)"/>',
-      '      </g>',
       '    </svg>',
       '  </div>',
       "</div>",
@@ -587,9 +574,8 @@ function createSplash(store) {
       writingTimer = 0;
       if (gone || leaving) return;
       var path = overlay.querySelector(".dslg-splash__write-path");
-      var pen = overlay.querySelector(".dslg-splash__pen-group");
       var complete = overlay.querySelector(".dslg-splash__complete");
-      if (!path || !pen || !complete) return;
+      if (!path || !complete) return;
       var length = 0;
       try {
         length = path.getTotalLength();
@@ -606,36 +592,19 @@ function createSplash(store) {
       var startedAt = 0;
       var duration = 4700;
 
-      function place(point) {
-        pen.setAttribute("transform", "translate(" + point.x.toFixed(2) + " " + point.y.toFixed(2) + ")");
-      }
-
-      try {
-        place(path.getPointAtLength(0));
-      } catch (error) {
-        /* getPointAtLength can fail during layout; the first frame retries. */
-      }
-      pen.setAttribute("opacity", "1");
-
       function frame(now) {
         if (gone || leaving) return;
         if (startedAt === 0) startedAt = now;
         var progress = Math.min(1, (now - startedAt) / duration);
         var eased = progress * progress * (3 - 2 * progress);
         path.style.strokeDashoffset = String(length * (1 - eased));
-        try {
-          place(path.getPointAtLength(length * eased));
-        } catch (error) {
-          /* Keep the mask moving even if the dot position misses a frame. */
-        }
-        if (progress >= 0.94) {
-          complete.setAttribute("opacity", String(Math.min(1, (progress - 0.94) / 0.06)));
+        if (progress >= 0.88) {
+          complete.setAttribute("opacity", String(Math.min(1, (progress - 0.88) / 0.12)));
         }
         if (progress < 1) {
           writingRaf = requestAnimationFrame(frame);
         } else {
           writingRaf = 0;
-          pen.setAttribute("opacity", "0");
         }
       }
 
@@ -652,8 +621,6 @@ function createSplash(store) {
       if (reducedMotion) {
         var complete = overlay.querySelector(".dslg-splash__complete");
         if (complete) complete.setAttribute("opacity", "1");
-        var pen = overlay.querySelector(".dslg-splash__pen-group");
-        if (pen) pen.setAttribute("opacity", "0");
         skipTimer = setTimeout(skip, 1900);
       } else {
         writingTimer = setTimeout(startWriting, 180);
@@ -739,6 +706,327 @@ function createSplash(store) {
     dispose: disposeActive,
     isActive: function () {
       return active !== null;
+    },
+  };
+}
+
+/* --------------------------------------------------------------------------
+   Dynamic Island
+   A compact glass pill at the top of the conversation column. Collapsed it
+   shows only a state dot; expanded it carries the conversation title, mode,
+   tabs and the Liquid Glass settings shortcut.
+   -------------------------------------------------------------------------- */
+
+function createDynamicIsland() {
+  if (!document.body) return { dispose: function () {} };
+
+  var host = document.createElement("div");
+  host.className = "dslg-island";
+  host.setAttribute("role", "button");
+  host.setAttribute("tabindex", "0");
+  host.setAttribute("aria-expanded", "false");
+  host.setAttribute("aria-label", "灵动岛，当前空闲");
+  host.innerHTML = [
+    '<span class="dslg-island__dot" aria-hidden="true"></span>',
+    '<div class="dslg-island__content">',
+    '  <div class="dslg-island__top">',
+    '    <div class="dslg-island__heading">',
+    '      <span class="dslg-island__title">DSH</span>',
+    '      <span class="dslg-island__mode">标准模式</span>',
+    '    </div>',
+    '    <button class="dslg-island__gear" type="button" aria-label="液态玻璃设置">',
+    '      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Zm8.1 4.9v-2.2l-2.1-.8a7.2 7.2 0 0 0-.7-1.7l1-2-1.6-1.6-2 1a7.2 7.2 0 0 0-1.7-.7L12.2 3H10l-.8 2.1a7.2 7.2 0 0 0-1.7.7l-2-1-1.6 1.6 1 2a7.2 7.2 0 0 0-.7 1.7l-2.1.8v2.2l2.1.8c.2.6.4 1.2.7 1.7l-1 2 1.6 1.6 2-1c.5.3 1.1.5 1.7.7l.8 2.1h2.2l.8-2.1c.6-.2 1.2-.4 1.7-.7l2 1 1.6-1.6-1-2c.3-.5.5-1.1.7-1.7l2.1-.8Z"/></svg>',
+    '    </button>',
+    '  </div>',
+    '  <div class="dslg-island__tabs" role="tablist" aria-label="会话视图">',
+    '    <button class="dslg-island__tab is-active" type="button" data-dslg-tab="对话">对话</button>',
+    '    <button class="dslg-island__tab" type="button" data-dslg-tab="轨迹">轨迹</button>',
+    '    <button class="dslg-island__more" type="button" aria-label="更多">…</button>',
+    '  </div>',
+    '</div>',
+  ].join("");
+  document.body.appendChild(host);
+
+  var dot = host.querySelector(".dslg-island__dot");
+  var titleEl = host.querySelector(".dslg-island__title");
+  var modeEl = host.querySelector(".dslg-island__mode");
+  var gear = host.querySelector(".dslg-island__gear");
+  var more = host.querySelector(".dslg-island__more");
+  var tabButtons = Array.prototype.slice.call(host.querySelectorAll("[data-dslg-tab]"));
+  var isOpen = false;
+  var isBusy = false;
+  var hiddenHeader = null;
+  var headerVisibility = "";
+  var pollTimer = 0;
+  var headerTimer = 0;
+  var settingTimers = [];
+
+  function visible(element) {
+    return !!element && element.getClientRects().length > 0;
+  }
+
+  function textOf(element) {
+    return element ? (element.textContent || "").replace(/\s+/g, " ").trim() : "";
+  }
+
+  function insideHost(node) {
+    return !!node && (node === host || host.contains(node));
+  }
+
+  function findHeader() {
+    var candidates = Array.prototype.slice.call(document.querySelectorAll('button, [role="tab"]'))
+      .filter(function (node) {
+        return !insideHost(node) && visible(node) && (textOf(node) === "对话" || textOf(node) === "轨迹");
+      });
+    for (var index = 0; index < candidates.length; index += 1) {
+      var node = candidates[index];
+      for (var depth = 0; depth < 6 && node.parentElement; depth += 1) {
+        node = node.parentElement;
+        if (insideHost(node)) break;
+        if (node.querySelector("[data-composer-card]")) break;
+        var text = textOf(node);
+        if (text.length > 400) break;
+        if (text.indexOf("标准模式") >= 0 && text.indexOf("对话") >= 0 && text.indexOf("轨迹") >= 0) {
+          return node;
+        }
+      }
+    }
+    return null;
+  }
+
+  function cleanTitle(value) {
+    return value
+      .replace(/^[\s◌●•·…⋯]+/, "")
+      .replace(/(?:[\s⋯.]*(?:刚刚|昨天|今天|\d{1,2}:\d{2}))+[\s⋯.]*$/g, "")
+      .replace(/[\s⋯.]+$/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function readTitle(header) {
+    if (header) {
+      var headings = Array.prototype.slice.call(header.querySelectorAll("h1, h2, h3, [class*='title'], [class*='Title']"))
+        .filter(function (node) {
+          if (!visible(node)) return false;
+          if (node.children.length > 0 && !/^H[1-3]$/i.test(node.tagName)) return false;
+          var value = cleanTitle(textOf(node));
+          if (!value || value.length < 2 || value.length > 90) return false;
+          if (/刚刚|昨天|今天|\d{1,2}:\d{2}|⋯/.test(value)) return false;
+          return true;
+        })
+        .sort(function (a, b) { return textOf(a).length - textOf(b).length; });
+      if (headings.length) return cleanTitle(textOf(headings[0]));
+    }
+    var rows = Array.prototype.slice.call(document.querySelectorAll("[data-row-key]"));
+    for (var index = 0; index < rows.length; index += 1) {
+      var row = rows[index];
+      var cls = String(row.className || "");
+      if (visible(row) && (/active|selected|current/i.test(cls) || row.getAttribute("aria-current") === "page" || row.getAttribute("aria-selected") === "true")) {
+        var value = cleanTitle(textOf(row));
+        if (value.length >= 2 && value.length <= 90) return value;
+      }
+    }
+    var docTitle = cleanTitle(document.title || "");
+    if (docTitle && !/deepseek harness|dsh/i.test(docTitle)) return docTitle;
+    return "DSH";
+  }
+
+  function readMode(header) {
+    var root = header || document;
+    var nodes = Array.prototype.slice.call(root.querySelectorAll("button, span, [role='button']"));
+    for (var index = 0; index < nodes.length; index += 1) {
+      var node = nodes[index];
+      if (insideHost(node) || !visible(node)) continue;
+      var value = textOf(node);
+      if (value.length <= 12 && /模式$/.test(value) && node.children.length === 0) return value;
+    }
+    return "标准模式";
+  }
+
+  function realTab(label) {
+    var nodes = Array.prototype.slice.call(document.querySelectorAll('button, [role="tab"], a'));
+    for (var index = 0; index < nodes.length; index += 1) {
+      if (!insideHost(nodes[index]) && visible(nodes[index]) && textOf(nodes[index]) === label) return nodes[index];
+    }
+    return null;
+  }
+
+  function updateHeader() {
+    var header = findHeader();
+    titleEl.textContent = readTitle(header);
+    modeEl.textContent = readMode(header);
+    var activeLabel = "对话";
+    var realTabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"], button'))
+      .filter(function (node) {
+        return !insideHost(node) && visible(node) && (textOf(node) === "对话" || textOf(node) === "轨迹");
+      });
+    for (var index = 0; index < realTabs.length; index += 1) {
+      if (realTabs[index].getAttribute("aria-selected") === "true" || /active|selected/i.test(String(realTabs[index].className || ""))) {
+        activeLabel = textOf(realTabs[index]);
+        break;
+      }
+    }
+    tabButtons.forEach(function (button) {
+      button.classList.toggle("is-active", button.getAttribute("data-dslg-tab") === activeLabel);
+    });
+  }
+
+  function busyNow() {
+    var send = document.querySelector('[data-composer-card] button[class*="_primary"]');
+    if (send) {
+      var label = ((send.getAttribute("aria-label") || "") + " " + (send.getAttribute("title") || "")).toLowerCase();
+      if (/停止|stop|cancel|取消/.test(label)) return true;
+    }
+    if (document.querySelector('[aria-busy="true"]')) return true;
+    var buttons = Array.prototype.slice.call(document.querySelectorAll("button"));
+    return buttons.some(function (button) {
+      return visible(button) && /停止生成|stop generating/i.test((button.getAttribute("aria-label") || "") + " " + (button.textContent || ""));
+    });
+  }
+
+  function updateBusy() {
+    var next = busyNow();
+    if (next === isBusy) return;
+    isBusy = next;
+    host.classList.toggle("is-busy", isBusy);
+    host.setAttribute("aria-label", isBusy ? "灵动岛，DSH 正在思考" : "灵动岛，当前空闲");
+  }
+
+  function place() {
+    var composer = document.querySelector("[data-composer-card]");
+    var center = window.innerWidth / 2;
+    if (composer) {
+      var rect = composer.getBoundingClientRect();
+      if (rect.width > 0) center = rect.left + rect.width / 2;
+    }
+    var half = (isOpen ? Math.min(window.innerWidth * 0.92, 680) : 188.98) / 2;
+    var left = Math.max(half + 12, Math.min(window.innerWidth - half - 12, center));
+    host.style.left = Math.round(left) + "px";
+  }
+
+  function restoreHeader() {
+    if (hiddenHeader) {
+      hiddenHeader.style.visibility = headerVisibility;
+      hiddenHeader = null;
+      headerVisibility = "";
+    }
+  }
+
+  function setOpen(next) {
+    if (next === isOpen) return;
+    isOpen = next;
+    host.classList.toggle("is-open", isOpen);
+    host.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    if (isOpen) {
+      updateHeader();
+      hiddenHeader = findHeader();
+      if (hiddenHeader && !hiddenHeader.contains(host)) {
+        headerVisibility = hiddenHeader.style.visibility;
+        hiddenHeader.style.visibility = "hidden";
+      }
+    } else {
+      restoreHeader();
+    }
+    place();
+  }
+
+  function onHostClick(event) {
+    if (event.target.closest("button")) return;
+    setOpen(!isOpen);
+  }
+
+  function onGearClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen(false);
+    openSettings();
+  }
+
+  function openSettings() {
+    settingTimers.forEach(function (timer) { clearTimeout(timer); });
+    settingTimers = [];
+    var account = document.querySelector('button[aria-label*="账号菜单"]');
+    if (!account) {
+      var direct = document.querySelector('button[aria-label*="设置"]');
+      if (direct) direct.click();
+      return;
+    }
+    account.click();
+    settingTimers.push(setTimeout(function () {
+      var settings = Array.prototype.slice.call(document.querySelectorAll('button, [role="menuitem"], a'))
+        .filter(function (node) { return visible(node) && textOf(node) === "设置"; })[0];
+      if (settings) settings.click();
+      settingTimers.push(setTimeout(function () {
+        var glass = Array.prototype.slice.call(document.querySelectorAll('button, [role="menuitem"], a, [role="tab"]'))
+          .filter(function (node) { return visible(node) && textOf(node) === "液态玻璃"; })[0];
+        if (glass) glass.click();
+      }, 450));
+    }, 260));
+  }
+
+  function onTabClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    var label = event.currentTarget.getAttribute("data-dslg-tab");
+    tabButtons.forEach(function (button) {
+      button.classList.toggle("is-active", button.getAttribute("data-dslg-tab") === label);
+    });
+    var target = realTab(label);
+    if (target) target.click();
+  }
+
+  function onMoreClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    var target = Array.prototype.slice.call(document.querySelectorAll('button'))
+      .filter(function (node) {
+        return !insideHost(node) && visible(node) && /更多|more|\.\.\./i.test((node.getAttribute("aria-label") || "") + " " + textOf(node));
+      })[0];
+    if (target) target.click();
+  }
+
+  function onOutside(event) {
+    if (isOpen && !host.contains(event.target)) setOpen(false);
+  }
+
+  function onKeyDown(event) {
+    if (event.key === "Escape" && isOpen) setOpen(false);
+    if ((event.key === "Enter" || event.key === " ") && event.target === host) {
+      event.preventDefault();
+      setOpen(!isOpen);
+    }
+  }
+
+  host.addEventListener("click", onHostClick);
+  host.addEventListener("keydown", onKeyDown);
+  gear.addEventListener("click", onGearClick);
+  more.addEventListener("click", onMoreClick);
+  tabButtons.forEach(function (button) { button.addEventListener("click", onTabClick); });
+  document.addEventListener("pointerdown", onOutside, true);
+  window.addEventListener("resize", place);
+  updateHeader();
+  updateBusy();
+  place();
+  pollTimer = setInterval(function () {
+    updateBusy();
+    place();
+  }, 360);
+  headerTimer = setInterval(function () {
+    if (isOpen && !hiddenHeader) updateHeader();
+  }, 1600);
+
+  return {
+    dispose: function () {
+      if (pollTimer !== 0) clearInterval(pollTimer);
+      if (headerTimer !== 0) clearInterval(headerTimer);
+      pollTimer = 0;
+      headerTimer = 0;
+      settingTimers.forEach(function (timer) { clearTimeout(timer); });
+      settingTimers = [];
+      restoreHeader();
+      document.removeEventListener("pointerdown", onOutside, true);
+      window.removeEventListener("resize", place);
+      host.remove();
     },
   };
 }
@@ -893,7 +1181,7 @@ function createModelParticles() {
 
   function buildParticles() {
     particles = [];
-    var count = reduced ? 1500 : 3800;
+    var count = reduced ? 260 : 680;
     var golden = Math.PI * (3 - Math.sqrt(5));
     for (var index = 0; index < count; index += 1) {
       var y = 1 - ((index + 0.5) / count) * 2;
@@ -906,7 +1194,7 @@ function createModelParticles() {
         lat: lat,
         lon: lon,
         phase: Math.random() * Math.PI * 2,
-        size: 1.3 + Math.random() * 3.5,
+        size: 0.8 + Math.random() * 2.6,
         alpha: 0.52 + Math.random() * 0.46,
         variant: variant,
         glow: Math.random() < 0.38,
@@ -915,8 +1203,8 @@ function createModelParticles() {
       });
     }
 
-    var bands = reduced ? 1 : 3;
-    var perBand = reduced ? 170 : 240;
+    var bands = reduced ? 1 : 2;
+    var perBand = reduced ? 40 : 60;
     for (var band = 0; band < bands; band += 1) {
       for (var point = 0; point < perBand; point += 1) {
         var angle = (point / perBand) * Math.PI * 2;
@@ -926,7 +1214,7 @@ function createModelParticles() {
           lat: Math.max(-1.38, Math.min(1.38, bandLat)),
           lon: bandLon,
           phase: Math.random() * Math.PI * 2,
-          size: 1.75 + Math.random() * 3.8,
+          size: 0.9 + Math.random() * 2.8,
           alpha: 0.7 + Math.random() * 0.3,
           variant: 4 + Math.floor(Math.random() * 3),
           glow: true,
@@ -939,7 +1227,7 @@ function createModelParticles() {
 
   function resizeCanvas() {
     if (!canvas) return;
-    size = Math.round(Math.max(320, Math.min(560, Math.min(window.innerWidth, window.innerHeight) * 0.62)));
+    size = 96;
     dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
@@ -947,6 +1235,19 @@ function createModelParticles() {
     canvas.style.height = size + "px";
     ctx = canvas.getContext("2d");
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function placeCanvas() {
+    if (!canvas) return;
+    var trigger = findTrigger();
+    if (!trigger) {
+      canvas.style.left = Math.round((window.innerWidth - size) / 2) + "px";
+      canvas.style.top = Math.round((window.innerHeight - size) / 2) + "px";
+      return;
+    }
+    var rect = trigger.getBoundingClientRect();
+    canvas.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - size - 8, rect.left + rect.width / 2 - size / 2))) + "px";
+    canvas.style.top = Math.round(Math.max(8, rect.top - size - 8)) + "px";
   }
 
   function draw(elapsed) {
@@ -1042,6 +1343,7 @@ function createModelParticles() {
   function onResize() {
     if (!canvas) return;
     resizeCanvas();
+    placeCanvas();
     buildParticles();
     draw(lastElapsed);
   }
@@ -1075,6 +1377,7 @@ function createModelParticles() {
     canvas.setAttribute("aria-hidden", "true");
     document.body.appendChild(canvas);
     resizeCanvas();
+    placeCanvas();
     if (!canvas || !ctx) {
       stop();
       return;
@@ -1300,6 +1603,7 @@ function apply(ctx) {
       var store = createStore();
       var material = createMaterial(store);
       var splash = createSplash(store);
+      var island = createDynamicIsland();
       var modelParticles = createModelParticles();
       var settingsDispose = null;
       try {
@@ -1339,6 +1643,7 @@ function apply(ctx) {
           }
         }
         splash.dispose();
+        if (island) island.dispose();
         if (modelParticles) modelParticles.dispose();
         material.dispose();
         store.dispose();

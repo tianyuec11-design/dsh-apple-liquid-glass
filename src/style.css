@@ -923,15 +923,6 @@ html.dslg-splash-lock {
   pointer-events: none;
 }
 
-.dslg-splash__pen-group {
-  filter: drop-shadow(0 0 8px rgba(150, 220, 255, 0.85));
-  pointer-events: none;
-}
-
-.dslg-splash__pen-dot {
-  pointer-events: none;
-}
-
 .dslg-splash__hint {
   position: absolute;
   z-index: 1;
@@ -972,10 +963,6 @@ html.dslg-splash-lock {
   opacity: 1;
 }
 
-.dslg-splash.is-reduced .dslg-splash__pen-group {
-  display: none;
-}
-
 .dslg-splash.is-reduced {
   animation: dslg-splash-in 0.45s ease-out forwards;
 }
@@ -987,14 +974,12 @@ html.dslg-splash-lock {
 
   .dslg-splash__glow,
   .dslg-splash__text,
-  .dslg-splash__pen-group,
   .dslg-splash__hint {
     animation: none !important;
     transition: none !important;
   }
 
-  .dslg-splash__write-path,
-  .dslg-splash__pen-group {
+  .dslg-splash__write-path {
     display: none;
   }
 
@@ -1028,9 +1013,8 @@ html.dslg-splash-lock {
 .dslg-particles {
   position: fixed;
   z-index: 2147482500;
-  top: 50%;
-  left: 50%;
-  translate: -50% -50%;
+  top: 0;
+  left: 0;
   pointer-events: none;
   user-select: none;
   opacity: 0;
@@ -1040,6 +1024,254 @@ html.dslg-splash-lock {
 
 .dslg-particles.is-on {
   opacity: 1;
+}
+
+.dslg-island {
+  position: fixed;
+  z-index: 2147482400;
+  top: 1cm;
+  left: 50%;
+  width: 5cm;
+  height: 1cm;
+  transform: translateX(-50%);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.42));
+  color: var(--dsw-alias-text-primary, #1d2129);
+  -webkit-backdrop-filter: blur(24px) saturate(165%) brightness(1.04);
+  backdrop-filter: blur(24px) saturate(165%) brightness(1.04);
+  box-shadow:
+    0 10px 28px rgba(30, 52, 90, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    width 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+body[data-ds-dark-theme] .dslg-island {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: linear-gradient(145deg, rgba(36, 40, 50, 0.78), rgba(16, 19, 27, 0.62));
+  color: var(--dsw-alias-text-primary, #e8eef8);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+body[data-dslg-glass="on"] .dslg-island {
+  border-color: color-mix(in srgb, var(--dslg-accent) 24%, rgba(255, 255, 255, 0.66));
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, calc(0.46 + var(--dslg-highlight, 0.28) * 0.7)) 0%,
+      rgba(255, 255, 255, calc(0.2 + var(--dslg-tint, 0.2))) 48%,
+      rgba(216, 235, 255, calc(0.16 + var(--dslg-tint, 0.2))) 100%);
+  -webkit-backdrop-filter: blur(var(--dslg-blur, 18px)) saturate(var(--dslg-sat, 160%)) brightness(var(--dslg-bri, 104%));
+  backdrop-filter: blur(var(--dslg-blur, 18px)) saturate(var(--dslg-sat, 160%)) brightness(var(--dslg-bri, 104%));
+}
+
+body[data-ds-dark-theme][data-dslg-glass="on"] .dslg-island {
+  background:
+    linear-gradient(145deg,
+      rgba(48, 55, 68, calc(0.56 + var(--dslg-tint, 0.2))) 0%,
+      rgba(24, 29, 40, 0.62) 54%,
+      rgba(14, 30, 58, calc(0.5 + var(--dslg-tint, 0.2))) 100%);
+}
+
+.dslg-island.is-open {
+  width: min(92vw, 680px);
+  height: 150px;
+  border-radius: 28px;
+  cursor: default;
+}
+
+.dslg-island__dot {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 1cm;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #30d158;
+  box-shadow: 0 0 9px 2px rgba(48, 209, 88, 0.42);
+  transform: translateY(-50%);
+  transition: top 480ms cubic-bezier(0.22, 1, 0.36, 1), background 200ms ease, box-shadow 200ms ease;
+}
+
+.dslg-island.is-open .dslg-island__dot {
+  top: 18px;
+  transform: none;
+}
+
+.dslg-island.is-busy .dslg-island__dot {
+  background: #ff453a;
+  box-shadow: 0 0 10px 3px rgba(255, 69, 58, 0.5);
+  animation: dslg-island-pulse 1.6s ease-in-out infinite;
+}
+
+.dslg-island__content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px 13px 2cm;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+.dslg-island.is-open .dslg-island__content {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 90ms;
+}
+
+.dslg-island__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dslg-island__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.dslg-island__title {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font: 600 13px/1.35 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dslg-island__mode {
+  flex: none;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: 999px;
+  color: color-mix(in srgb, currentColor 62%, transparent);
+  font: 500 10px/1.2 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  white-space: nowrap;
+}
+
+.dslg-island__gear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  color: color-mix(in srgb, currentColor 68%, transparent);
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.dslg-island__gear:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  color: inherit;
+}
+
+.dslg-island__gear svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+.dslg-island__tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.dslg-island__tab {
+  padding: 5px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: color-mix(in srgb, currentColor 58%, transparent);
+  font: 500 12px/1.2 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.dslg-island__tab:hover {
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  color: inherit;
+}
+
+.dslg-island__tab.is-active {
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  color: inherit;
+  font-weight: 600;
+}
+
+.dslg-island__more {
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, currentColor 48%, transparent);
+  font: 500 16px/1 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  cursor: pointer;
+}
+
+.dslg-island__more:hover {
+  color: inherit;
+}
+
+@keyframes dslg-island-pulse {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(255, 69, 58, 0.42); }
+  50% { box-shadow: 0 0 15px 5px rgba(255, 69, 58, 0.62); }
+}
+
+@media (max-width: 720px) {
+  .dslg-island.is-open {
+    width: calc(100vw - 24px);
+    height: 158px;
+  }
+
+  .dslg-island__content {
+    padding-left: 1.5cm;
+  }
+
+  .dslg-island__mode {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dslg-island,
+  .dslg-island__dot,
+  .dslg-island__content {
+    transition: none !important;
+  }
+
+  .dslg-island.is-busy .dslg-island__dot {
+    animation: none;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1106,8 +1338,7 @@ html.dslg-splash-lock {
     filter: none;
   }
 
-  .dslg-splash__write-path,
-  .dslg-splash__pen-group {
+  .dslg-splash__write-path {
     display: none;
   }
 
