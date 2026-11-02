@@ -928,7 +928,7 @@ function createDynamicIsland(store, splash) {
 
   function busyNow() {
     var nodes = Array.prototype.slice.call(document.querySelectorAll(
-      '[aria-busy="true"], [data-running="true"], [data-state="running"], [data-state="streaming"], [class*="running"], [class*="streaming"], [class*="thinking"], [class*="generating"]'
+      '[aria-busy="true"], [data-running="true"], [data-state="running"], [data-state="streaming"], [data-streaming], [data-streaming="true"], [class*="running"], [class*="streaming"], [class*="thinking"], [class*="generating"]'
     ));
     for (var index = 0; index < nodes.length; index += 1) {
       var node = nodes[index];

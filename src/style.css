@@ -1140,9 +1140,13 @@ body[data-dslg-glass="on"] .dslg-island {
 }
 
 .dslg-island.is-busy .dslg-island__dot,
-.dslg-island[data-busy="true"] .dslg-island__dot {
+.dslg-island[data-busy="true"] .dslg-island__dot,
+body:has([data-state="running"]) .dslg-island__dot,
+body:has([data-streaming]) .dslg-island__dot,
+body:has(button[aria-label*="停止生成"]) .dslg-island__dot,
+body:has(button[aria-label*="Stop generating" i]) .dslg-island__dot {
   background: #ff453a !important;
-  box-shadow: 0 0 10px 3px rgba(255, 69, 58, 0.5);
+  box-shadow: 0 0 10px 3px rgba(255, 69, 58, 0.5) !important;
   animation: dslg-island-pulse 1.6s ease-in-out infinite;
 }
 
