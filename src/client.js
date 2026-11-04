@@ -791,16 +791,23 @@ function createDynamicIsland(store, splash) {
   document.body.appendChild(panel);
 
   var projectModal = document.createElement("div");
-  projectModal.className = "dslg-project-modal";
+  projectModal.className = "dslg-project-modal dslg-carousel";
   projectModal.setAttribute("aria-hidden", "true");
   projectModal.innerHTML = [
-    '<div class="dslg-project-modal__head">',
-    '  <button class="dslg-project-modal__back" type="button" aria-label="返回">‹</button>',
-    '  <span class="dslg-project-modal__title">工作区</span>',
-    '  <button class="dslg-project-modal__close" type="button" aria-label="关闭">×</button>',
+    '<div class="dslg-carousel__head">',
+    '  <button class="dslg-carousel__back" type="button" aria-label="返回">‹</button>',
+    '  <span class="dslg-carousel__title">工作区</span>',
+    '  <button class="dslg-carousel__close" type="button" aria-label="关闭">×</button>',
     '</div>',
-    '<div class="dslg-project-modal__list"></div>',
-    '<button class="dslg-project-modal__new" type="button">＋ 新建工作区</button>',
+    '<div class="dslg-carousel__stage">',
+    '  <button class="dslg-carousel__nav dslg-carousel__prev" type="button" aria-label="上一个">‹</button>',
+    '  <div class="dslg-carousel__track"></div>',
+    '  <button class="dslg-carousel__nav dslg-carousel__next" type="button" aria-label="下一个">›</button>',
+    '</div>',
+    '<div class="dslg-carousel__foot">',
+    '  <span class="dslg-carousel__counter">1 / 1</span>',
+    '  <span class="dslg-carousel__hint">滚轮或拖动切换</span>',
+    '</div>',
   ].join("");
   document.body.appendChild(projectModal);
   var panelOpen = false;
@@ -821,11 +828,19 @@ function createDynamicIsland(store, splash) {
   var panelSplash = panel.querySelector(".dslg-island-panel__splash-switch");
   var panelClose = panel.querySelector(".dslg-island-panel__close");
   var projectsButton = host.querySelector(".dslg-island__projects");
-  var projectBack = projectModal.querySelector(".dslg-project-modal__back");
-  var projectClose = projectModal.querySelector(".dslg-project-modal__close");
-  var projectTitle = projectModal.querySelector(".dslg-project-modal__title");
-  var projectList = projectModal.querySelector(".dslg-project-modal__list");
-  var projectNew = projectModal.querySelector(".dslg-project-modal__new");
+  var projectBack = projectModal.querySelector(".dslg-carousel__back");
+  var projectClose = projectModal.querySelector(".dslg-carousel__close");
+  var projectTitle = projectModal.querySelector(".dslg-carousel__title");
+  var projectTrack = projectModal.querySelector(".dslg-carousel__track");
+  var projectStage = projectModal.querySelector(".dslg-carousel__stage");
+  var projectPrev = projectModal.querySelector(".dslg-carousel__prev");
+  var projectNext = projectModal.querySelector(".dslg-carousel__next");
+  var projectCounter = projectModal.querySelector(".dslg-carousel__counter");
+  var projectItems = [];
+  var projectIndex = 0;
+  var wheelAt = 0;
+  var dragState = null;
+  var dragSuppress = 0;
   var liveBalance = { text: "—", at: 0, busy: false };
   var projectOpen = false;
   var projectView = "workspaces";
@@ -1190,7 +1205,7 @@ function createDynamicIsland(store, splash) {
       var key = node.getAttribute("data-row-key") || "";
       if (/^session[:_-]/i.test(key)) return;
       var text = rowText(node);
-      if (!text || text.length > 60 || /新会话|新建会话|工作区|项目/.test(text)) return;
+      if (!text || text.length > 60 || /新会话|新建会话|^工作区$/.test(text)) return;
       var target = node.closest("button, [role='button'], a") || node;
       if (seen.has(text)) return;
       seen.add(text);
@@ -1223,54 +1238,150 @@ function createDynamicIsland(store, splash) {
       seen.add(text);
       out.push({ text: text, target: node.closest("button, [role='button'], a") || node });
     });
+    if (out.length === 0) {
+      nodes = Array.prototype.slice.call(root.querySelectorAll('[class*="session" i], [data-row-key]'));
+      nodes.forEach(function (node) {
+        if (insideHost(node) || !visible(node)) return;
+        var text = rowText(node);
+        if (!text || seen.has(text) || text === currentWorkspace || /新会话|新建会话|^工作区$/.test(text)) return;
+        seen.add(text);
+        out.push({ text: text, target: node.closest("button, [role='button'], a") || node });
+      });
+    }
     return out;
+  }
+
+  function projectStep() {
+    return window.innerWidth < 720 ? 92 : 138;
+  }
+
+  function layoutProjects() {
+    var cards = Array.prototype.slice.call(projectTrack.children);
+    var total = cards.length;
+    if (total === 0) return;
+    var half = total / 2;
+    var step = projectStep();
+    cards.forEach(function (card, index) {
+      var offset = index - projectIndex;
+      if (offset > half) offset -= total;
+      if (offset < -half) offset += total;
+      var distance = Math.abs(offset);
+      card.style.transform = "translate(-50%, -50%) translateX(" + (offset * step) + "px) translateZ(" +
+        (distance === 0 ? 72 : -distance * 76) + "px) rotateY(" + (-offset * 30) + "deg) scale(" +
+        Math.max(0.62, 1 - distance * 0.16) + ")";
+      card.style.opacity = distance > 2 ? "0" : String(1 - distance * 0.22);
+      card.style.pointerEvents = distance > 2 ? "none" : "auto";
+      card.style.zIndex = String(20 - distance);
+      card.classList.toggle("is-active", distance === 0);
+      card.setAttribute("aria-hidden", distance === 0 ? "false" : "true");
+    });
+    if (projectCounter) projectCounter.textContent = (projectIndex + 1) + " / " + total;
+  }
+
+  function activateProject(item) {
+    if (item.isNew) {
+      if (projectView === "tasks") onNewTask();
+      else onNewWorkspace();
+      closeProjects();
+      return;
+    }
+    if (projectView === "workspaces") {
+      item.target.click();
+      currentWorkspace = item.text;
+      window.setTimeout(function () {
+        projectView = "tasks";
+        projectIndex = 0;
+        renderProjects();
+        placeProjectModal();
+      }, 420);
+    } else {
+      item.target.click();
+      closeProjects();
+    }
+  }
+
+  function moveProjects(delta) {
+    var total = projectItems.length;
+    if (total === 0) return;
+    projectIndex = (projectIndex + delta + total) % total;
+    layoutProjects();
+  }
+
+  function onProjectWheel(event) {
+    if (!projectOpen) return;
+    event.preventDefault();
+    var now = Date.now();
+    if (now - wheelAt < 110) return;
+    wheelAt = now;
+    moveProjects(event.deltaY > 0 ? 1 : -1);
+  }
+
+  function onProjectPointerDown(event) {
+    if (!projectOpen || event.button !== 0) return;
+    if (event.target.closest(".dslg-carousel__nav, .dslg-carousel__back, .dslg-carousel__close")) return;
+    dragState = { x: event.clientX, moved: false, id: event.pointerId };
+    try {
+      projectStage.setPointerCapture(event.pointerId);
+    } catch (error) {
+      /* Pointer capture may be unavailable. */
+    }
+  }
+
+  function onProjectPointerMove(event) {
+    if (!dragState) return;
+    if (Math.abs(event.clientX - dragState.x) > 7) dragState.moved = true;
+  }
+
+  function onProjectPointerUp(event) {
+    if (!dragState) return;
+    var delta = event.clientX - dragState.x;
+    var moved = dragState.moved;
+    dragState = null;
+    if (moved) {
+      dragSuppress = Date.now() + 360;
+      moveProjects(delta > 0 ? -1 : 1);
+    }
   }
 
   function renderProjects() {
     if (!projectOpen) return;
-    projectModal.classList.toggle("is-tasks", projectView === "tasks");
     projectTitle.textContent = projectView === "tasks" ? (currentWorkspace || "任务") : "工作区";
     projectBack.classList.toggle("is-visible", projectView === "tasks");
-    projectNew.textContent = projectView === "tasks" ? "＋ 新建任务" : "＋ 新建工作区";
-    projectList.innerHTML = "";
-    var items = projectView === "tasks" ? collectSessions() : collectWorkspaces();
-    if (items.length === 0) {
-      var empty = document.createElement("div");
-      empty.className = "dslg-project-modal__empty";
-      empty.textContent = projectView === "tasks" ? "这个工作区还没有任务" : "没有找到工作区";
-      projectList.appendChild(empty);
-    }
-    items.forEach(function (item) {
-      var button = document.createElement("button");
-      button.type = "button";
-      button.className = "dslg-project-modal__item";
-      button.textContent = item.text;
-      button.addEventListener("click", function () {
-        if (projectView === "workspaces") {
-          item.target.click();
-          currentWorkspace = item.text;
-          window.setTimeout(function () {
-            projectView = "tasks";
-            renderProjects();
-            placeProjectModal();
-          }, 420);
-        } else {
-          item.target.click();
-          closeProjects();
+    projectTrack.innerHTML = "";
+    projectItems = (projectView === "tasks" ? collectSessions() : collectWorkspaces()).slice();
+    projectItems.push({ isNew: true, text: projectView === "tasks" ? "＋ 新建任务" : "＋ 新建工作区" });
+    if (projectIndex >= projectItems.length) projectIndex = 0;
+    projectItems.forEach(function (item, index) {
+      var card = document.createElement("button");
+      card.type = "button";
+      card.className = "dslg-carousel__card" + (item.isNew ? " is-new" : "");
+      card.innerHTML = "<strong></strong><small></small>";
+      card.querySelector("strong").textContent = item.text;
+      card.querySelector("small").textContent = item.isNew
+        ? (projectView === "tasks" ? "创建新任务" : "创建新工作区")
+        : (projectView === "tasks" ? "打开任务" : "切换工作区");
+      card.addEventListener("click", function () {
+        if (Date.now() < dragSuppress) return;
+        if (index !== projectIndex) {
+          projectIndex = index;
+          layoutProjects();
+          return;
         }
+        activateProject(item);
       });
-      projectList.appendChild(button);
+      projectTrack.appendChild(card);
     });
+    layoutProjects();
     placeProjectModal();
   }
 
   function placeProjectModal() {
     if (!projectOpen) return;
-    var width = Math.min(window.innerWidth - 24, 420);
+    var width = Math.min(window.innerWidth - 24, 680);
     var islandRect = host.getBoundingClientRect();
     projectModal.style.width = width + "px";
     projectModal.style.left = Math.round(Math.max(12, Math.min(window.innerWidth - width - 12, window.innerWidth / 2 - width / 2))) + "px";
-    projectModal.style.top = Math.round(Math.min(window.innerHeight * 0.28, islandRect.bottom + 12)) + "px";
+    projectModal.style.top = Math.round(Math.min(window.innerHeight * 0.34, islandRect.bottom + 10)) + "px";
   }
 
   function toggleProjects(next) {
@@ -1282,6 +1393,7 @@ function createDynamicIsland(store, splash) {
     if (projectOpen) {
       closePanel();
       projectView = "workspaces";
+      projectIndex = 0;
       currentWorkspace = "";
       renderProjects();
     }
@@ -1455,12 +1567,16 @@ function createDynamicIsland(store, splash) {
   projectClose.addEventListener("click", closeProjects);
   projectBack.addEventListener("click", function () {
     projectView = "workspaces";
+    projectIndex = 0;
     renderProjects();
   });
-  projectNew.addEventListener("click", function () {
-    if (projectView === "tasks") onNewTask();
-    else onNewWorkspace();
-  });
+  projectPrev.addEventListener("click", function () { moveProjects(-1); });
+  projectNext.addEventListener("click", function () { moveProjects(1); });
+  projectStage.addEventListener("wheel", onProjectWheel, { passive: false });
+  projectStage.addEventListener("pointerdown", onProjectPointerDown);
+  projectStage.addEventListener("pointermove", onProjectPointerMove);
+  projectStage.addEventListener("pointerup", onProjectPointerUp);
+  projectStage.addEventListener("pointercancel", onProjectPointerUp);
   unsubscribePanel = store.subscribe(function () {
     if (panelOpen) renderPanel();
   });
