@@ -808,6 +808,7 @@ function createDynamicIsland(store, splash) {
     '  <span class="dslg-carousel__counter">1 / 1</span>',
     '  <span class="dslg-carousel__hint">滚轮或拖动切换</span>',
     '</div>',
+    '<div class="dslg-task-list"></div>',
   ].join("");
   document.body.appendChild(projectModal);
   var panelOpen = false;
@@ -836,6 +837,8 @@ function createDynamicIsland(store, splash) {
   var projectPrev = projectModal.querySelector(".dslg-carousel__prev");
   var projectNext = projectModal.querySelector(".dslg-carousel__next");
   var projectCounter = projectModal.querySelector(".dslg-carousel__counter");
+  var projectHint = projectModal.querySelector(".dslg-carousel__hint");
+  var projectTaskList = projectModal.querySelector(".dslg-task-list");
   var projectItems = [];
   var projectIndex = 0;
   var wheelAt = 0;
@@ -1039,39 +1042,73 @@ function createDynamicIsland(store, splash) {
     return match ? match[0].replace(/\s+/g, " ") : "";
   }
 
-  function readContextUsage() {
-    var roots = Array.prototype.slice.call(document.querySelectorAll('[class*="context" i], [class*="Context"], [class*="meter" i], [data-context-usage]'));
-    var composer = document.querySelector("[data-composer-card]");
-    if (composer) {
-      roots.push(composer);
-      if (composer.parentElement) roots.push(composer.parentElement);
+  function percentFromText(text) {
+    if (!text || text.length > 80) return "";
+    var match = text.match(/(?:上下文|context)[^%]{0,24}?(\d{1,3})\s*%/i) ||
+      text.match(/(\d{1,3})\s*%[^%]{0,24}?(?:上下文|context)/i);
+    if (match) {
+      var value = Number(match[1]);
+      if (value >= 0 && value <= 100) return value + "%";
     }
+    return "";
+  }
+
+  function parseCompact(value, unit) {
+    var number = Number(String(value).replace(/,/g, ""));
+    if (!isFinite(number)) return 0;
+    var suffix = String(unit || "").toUpperCase();
+    if (suffix === "K") return number * 1000;
+    if (suffix === "M") return number * 1000000;
+    if (suffix === "G") return number * 1000000000;
+    return number;
+  }
+
+  function readContextUsage() {
+    var labelled = Array.prototype.slice.call(document.querySelectorAll('button[aria-label*="%"], [aria-label*="上下文"], [aria-label*="context" i]'));
+    for (var labelIndex = 0; labelIndex < labelled.length; labelIndex += 1) {
+      var labelNode = labelled[labelIndex];
+      if (insideHost(labelNode) || !visible(labelNode)) continue;
+      var percent = percentFromText(labelNode.getAttribute("aria-label") || "") || percentFromText(labelNode.getAttribute("title") || "");
+      if (percent) return percent;
+    }
+    var roots = Array.prototype.slice.call(document.querySelectorAll('[class*="context" i], [class*="Context"], [class*="meter" i], [data-context-usage]'));
     for (var rootIndex = 0; rootIndex < roots.length; rootIndex += 1) {
       var root = roots[rootIndex];
-      if (!root || insideHost(root)) continue;
-      var nodes = root.querySelectorAll("span, button, div, b, strong, [aria-label]");
-      for (var index = 0; index < nodes.length; index += 1) {
-        var node = nodes[index];
-        if (insideHost(node) || !visible(node)) continue;
-        var value = matchContextText(textOf(node));
-        if (value) return value;
+      if (!root || insideHost(root) || !visible(root)) continue;
+      var text = textOf(root);
+      var direct = percentFromText(text);
+      if (direct) return direct;
+      var plain = text.match(/(?:^|\s)(\d{1,3})\s*%(?:\s|$)/);
+      if (plain) {
+        var plainValue = Number(plain[1]);
+        if (plainValue >= 0 && plainValue <= 100) return plainValue + "%";
       }
     }
-    try {
-      var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      var seen = 0;
-      var textNode = walker.nextNode();
-      while (textNode && seen < 6000) {
-        seen += 1;
-        var raw = (textNode.nodeValue || "").trim();
-        if (raw.length <= 60 && raw.indexOf("/") >= 0) {
-          var found = matchContextText(raw);
-          if (found && /~/.test(raw)) return found;
-        }
-        textNode = walker.nextNode();
+    var pair = "";
+    for (var pairIndex = 0; pairIndex < roots.length && !pair; pairIndex += 1) {
+      var pairNode = roots[pairIndex];
+      if (!pairNode || insideHost(pairNode) || !visible(pairNode)) continue;
+      var pairText = matchContextText(textOf(pairNode));
+      if (pairText) pair = pairText;
+    }
+    if (!pair) {
+      var composer = document.querySelector("[data-composer-card]");
+      if (composer && composer.parentElement) {
+        var parentText = matchContextText(textOf(composer.parentElement));
+        if (parentText) pair = parentText;
       }
-    } catch (error) {
-      /* TreeWalker unavailable. */
+    }
+    if (pair) {
+      var figures = pair.replace(/~/g, "").split("/");
+      if (figures.length === 2) {
+        var usedMatch = figures[0].match(/([\d.,]+)\s*([KMGkmg]?)/);
+        var totalMatch = figures[1].match(/([\d.,]+)\s*([KMGkmg]?)/);
+        if (usedMatch && totalMatch) {
+          var used = parseCompact(usedMatch[1], usedMatch[2]);
+          var total = parseCompact(totalMatch[1], totalMatch[2]);
+          if (total > 0) return Math.min(100, Math.round(used / total * 100)) + "%";
+        }
+      }
     }
     return "—";
   }
@@ -1221,33 +1258,34 @@ function createDynamicIsland(store, splash) {
         out.push({ text: text, target: node });
       });
     }
+    if (out.length === 0) {
+      nodes = Array.prototype.slice.call(root.querySelectorAll('[role="treeitem"][aria-expanded]'));
+      nodes.forEach(function (node) {
+        if (insideHost(node) || !visible(node) || /sessionRow/i.test(String(node.className || ""))) return;
+        var text = rowText(node);
+        if (!text || text.length > 60 || seen.has(text) || /^工作区$|新会话|新建会话/.test(text)) return;
+        seen.add(text);
+        out.push({ text: text, target: node });
+      });
+    }
     return out;
   }
 
   function collectSessions() {
     var root = sidebarRoot();
-    var nodes = Array.prototype.slice.call(root.querySelectorAll('[data-row-key]'));
+    var nodes = Array.prototype.slice.call(root.querySelectorAll('[class*="sessionRow"], [data-row-key]'));
     var seen = new Set();
     var out = [];
     nodes.forEach(function (node) {
       if (insideHost(node) || !visible(node)) return;
       var key = node.getAttribute("data-row-key") || "";
-      if (!/^session[:_-]/i.test(key)) return;
+      var isSessionRow = /sessionRow/i.test(String(node.className || ""));
+      if (!isSessionRow && key && !/^session[:_-]/i.test(key)) return;
       var text = rowText(node);
-      if (!text || seen.has(text) || /新会话|新建会话/.test(text)) return;
+      if (!text || seen.has(text) || /新会话|新建会话|^工作区$/.test(text)) return;
       seen.add(text);
-      out.push({ text: text, target: node.closest("button, [role='button'], a") || node });
+      out.push({ text: text, target: node.closest('[class*="sessionRow"]') || node.closest("button, [role='button'], a") || node });
     });
-    if (out.length === 0) {
-      nodes = Array.prototype.slice.call(root.querySelectorAll('[class*="session" i], [data-row-key]'));
-      nodes.forEach(function (node) {
-        if (insideHost(node) || !visible(node)) return;
-        var text = rowText(node);
-        if (!text || seen.has(text) || text === currentWorkspace || /新会话|新建会话|^工作区$/.test(text)) return;
-        seen.add(text);
-        out.push({ text: text, target: node.closest("button, [role='button'], a") || node });
-      });
-    }
     return out;
   }
 
@@ -1286,14 +1324,15 @@ function createDynamicIsland(store, splash) {
       return;
     }
     if (projectView === "workspaces") {
-      item.target.click();
+      var row = item.target.closest('[class*="projectRow"]') || item.target;
+      if (row.getAttribute("aria-expanded") !== "true") row.click();
       currentWorkspace = item.text;
       window.setTimeout(function () {
         projectView = "tasks";
         projectIndex = 0;
         renderProjects();
         placeProjectModal();
-      }, 420);
+      }, 520);
     } else {
       item.target.click();
       closeProjects();
@@ -1343,13 +1382,42 @@ function createDynamicIsland(store, splash) {
     }
   }
 
+  function renderTaskList() {
+    projectTaskList.innerHTML = "";
+    var items = collectSessions();
+    items.push({ isNew: true, text: "＋ 新建任务" });
+    items.forEach(function (item) {
+      var row = document.createElement("button");
+      row.type = "button";
+      row.className = "dslg-task-list__item" + (item.isNew ? " is-new" : "");
+      row.innerHTML = "<strong></strong><small></small>";
+      row.querySelector("strong").textContent = item.text;
+      row.querySelector("small").textContent = item.isNew ? "创建新任务" : "打开任务";
+      row.addEventListener("click", function () { activateProject(item); });
+      projectTaskList.appendChild(row);
+    });
+  }
+
   function renderProjects() {
     if (!projectOpen) return;
-    projectTitle.textContent = projectView === "tasks" ? (currentWorkspace || "任务") : "工作区";
-    projectBack.classList.toggle("is-visible", projectView === "tasks");
+    var isTasks = projectView === "tasks";
+    projectModal.classList.toggle("is-tasks", isTasks);
+    projectTitle.textContent = isTasks ? (currentWorkspace || "任务") : "工作区";
+    projectBack.classList.toggle("is-visible", isTasks);
+    if (isTasks) {
+      projectTrack.innerHTML = "";
+      projectItems = [];
+      renderTaskList();
+      if (projectCounter) projectCounter.textContent = "";
+      if (projectHint) projectHint.textContent = "上下滚动选择任务";
+      placeProjectModal();
+      return;
+    }
+    projectTaskList.innerHTML = "";
+    if (projectHint) projectHint.textContent = "滚轮或拖动切换";
     projectTrack.innerHTML = "";
-    projectItems = (projectView === "tasks" ? collectSessions() : collectWorkspaces()).slice();
-    projectItems.push({ isNew: true, text: projectView === "tasks" ? "＋ 新建任务" : "＋ 新建工作区" });
+    projectItems = collectWorkspaces().slice();
+    projectItems.push({ isNew: true, text: "＋ 新建工作区" });
     if (projectIndex >= projectItems.length) projectIndex = 0;
     projectItems.forEach(function (item, index) {
       var card = document.createElement("button");
@@ -1357,16 +1425,11 @@ function createDynamicIsland(store, splash) {
       card.className = "dslg-carousel__card" + (item.isNew ? " is-new" : "");
       card.innerHTML = "<strong></strong><small></small>";
       card.querySelector("strong").textContent = item.text;
-      card.querySelector("small").textContent = item.isNew
-        ? (projectView === "tasks" ? "创建新任务" : "创建新工作区")
-        : (projectView === "tasks" ? "打开任务" : "切换工作区");
+      card.querySelector("small").textContent = item.isNew ? "创建新工作区" : "切换工作区";
       card.addEventListener("click", function () {
         if (Date.now() < dragSuppress) return;
-        if (index !== projectIndex) {
-          projectIndex = index;
-          layoutProjects();
-          return;
-        }
+        projectIndex = index;
+        layoutProjects();
         activateProject(item);
       });
       projectTrack.appendChild(card);
