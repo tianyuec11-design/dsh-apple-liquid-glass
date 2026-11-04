@@ -844,6 +844,8 @@ function createDynamicIsland(store, splash) {
   var wheelAt = 0;
   var dragState = null;
   var dragSuppress = 0;
+  var projectLoading = false;
+  var projectLoadTimer = 0;
   var liveBalance = { text: "—", at: 0, busy: false };
   var projectOpen = false;
   var projectView = "workspaces";
@@ -1286,6 +1288,16 @@ function createDynamicIsland(store, splash) {
       seen.add(text);
       out.push({ text: text, target: node.closest('[class*="sessionRow"]') || node.closest("button, [role='button'], a") || node });
     });
+    if (out.length === 0) {
+      nodes = Array.prototype.slice.call(root.querySelectorAll('[role="treeitem"]'));
+      nodes.forEach(function (node) {
+        if (insideHost(node) || !visible(node) || /projectRow/i.test(String(node.className || ""))) return;
+        var text = rowText(node);
+        if (!text || seen.has(text) || text === currentWorkspace || /新会话|新建会话|^工作区$/.test(text)) return;
+        seen.add(text);
+        out.push({ text: text, target: node });
+      });
+    }
     return out;
   }
 
@@ -1325,14 +1337,37 @@ function createDynamicIsland(store, splash) {
     }
     if (projectView === "workspaces") {
       var row = item.target.closest('[class*="projectRow"]') || item.target;
+      if (!row.matches('[class*="projectRow"]')) {
+        var candidates = Array.prototype.slice.call(document.querySelectorAll('[class*="projectRow"]')).filter(function (node) {
+          return !insideHost(node) && visible(node) && rowText(node) === item.text;
+        });
+        if (candidates.length) row = candidates[0];
+      }
       if (row.getAttribute("aria-expanded") !== "true") row.click();
       currentWorkspace = item.text;
-      window.setTimeout(function () {
-        projectView = "tasks";
-        projectIndex = 0;
-        renderProjects();
-        placeProjectModal();
-      }, 520);
+      projectView = "tasks";
+      projectIndex = 0;
+      projectLoading = true;
+      renderProjects();
+      placeProjectModal();
+      if (projectLoadTimer !== 0) clearInterval(projectLoadTimer);
+      var attempts = 0;
+      projectLoadTimer = setInterval(function () {
+        attempts += 1;
+        if (!projectOpen || projectView !== "tasks") {
+          clearInterval(projectLoadTimer);
+          projectLoadTimer = 0;
+          return;
+        }
+        var count = collectSessions().length;
+        renderTaskList();
+        if (count > 0 || attempts >= 20) {
+          projectLoading = false;
+          renderTaskList();
+          clearInterval(projectLoadTimer);
+          projectLoadTimer = 0;
+        }
+      }, 250);
     } else {
       item.target.click();
       closeProjects();
@@ -1385,6 +1420,13 @@ function createDynamicIsland(store, splash) {
   function renderTaskList() {
     projectTaskList.innerHTML = "";
     var items = collectSessions();
+    if (items.length === 0 && projectLoading) {
+      var loading = document.createElement("div");
+      loading.className = "dslg-task-list__empty";
+      loading.textContent = "正在展开工作区任务…";
+      projectTaskList.appendChild(loading);
+      return;
+    }
     items.push({ isNew: true, text: "＋ 新建任务" });
     items.forEach(function (item) {
       var row = document.createElement("button");
@@ -1453,6 +1495,11 @@ function createDynamicIsland(store, splash) {
     projectOpen = value;
     projectModal.classList.toggle("is-on", projectOpen);
     projectModal.setAttribute("aria-hidden", projectOpen ? "false" : "true");
+    if (!projectOpen) {
+      if (projectLoadTimer !== 0) clearInterval(projectLoadTimer);
+      projectLoadTimer = 0;
+      projectLoading = false;
+    }
     if (projectOpen) {
       closePanel();
       projectView = "workspaces";
@@ -1629,6 +1676,9 @@ function createDynamicIsland(store, splash) {
   panelSplash.addEventListener("click", onSplashClick);
   projectClose.addEventListener("click", closeProjects);
   projectBack.addEventListener("click", function () {
+    if (projectLoadTimer !== 0) clearInterval(projectLoadTimer);
+    projectLoadTimer = 0;
+    projectLoading = false;
     projectView = "workspaces";
     projectIndex = 0;
     renderProjects();

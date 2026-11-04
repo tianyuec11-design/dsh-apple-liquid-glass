@@ -1510,6 +1510,13 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
   color: #bde4ff;
 }
 
+.dslg-task-list__empty {
+  padding: 20px 12px;
+  color: rgba(205, 228, 255, 0.5);
+  text-align: center;
+  font: 400 12px/1.5 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
 @media (max-width: 720px) {
   .dslg-carousel__stage {
     height: 172px;
