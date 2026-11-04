@@ -1448,22 +1448,16 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
   display: none;
 }
 
-.dslg-project-modal.is-tasks .dslg-carousel__stage,
-.dslg-project-modal.is-tasks .dslg-carousel__foot {
-  display: none;
+.dslg-project-modal.is-tasks .dslg-carousel__stage {
+  height: 300px;
+  perspective-origin: 50% 50%;
 }
 
-.dslg-project-modal.is-tasks .dslg-task-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: min(88vw, 420px);
-  max-height: min(56vh, 360px);
-  margin: 0 auto;
-  padding: 2px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(140, 200, 255, 0.35) transparent;
+.dslg-project-modal.is-tasks .dslg-carousel__card {
+  width: min(76vw, 330px);
+  min-height: 86px;
+  padding: 12px 16px;
+  justify-content: center;
 }
 
 .dslg-task-list__item {

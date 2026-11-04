@@ -1382,15 +1382,19 @@ function createDynamicIsland(store, splash, ctx) {
     var total = cards.length;
     if (total === 0) return;
     var half = total / 2;
-    var step = projectStep();
+    var isTasks = projectView === "tasks";
+    var step = isTasks ? (window.innerHeight < 720 ? 72 : 88) : projectStep();
     cards.forEach(function (card, index) {
       var offset = index - projectIndex;
       if (offset > half) offset -= total;
       if (offset < -half) offset += total;
       var distance = Math.abs(offset);
-      card.style.transform = "translate(-50%, -50%) translateX(" + (offset * step) + "px) translateZ(" +
-        (distance === 0 ? 72 : -distance * 76) + "px) rotateY(" + (-offset * 30) + "deg) scale(" +
-        Math.max(0.62, 1 - distance * 0.16) + ")";
+      var x = isTasks ? 0 : offset * step;
+      var y = isTasks ? offset * step : 0;
+      card.style.transform = "translate(-50%, -50%) translateX(" + x + "px) translateY(" + y + "px) translateZ(" +
+        (distance === 0 ? 72 : -distance * 76) + "px) " +
+        (isTasks ? "rotateX(" + (-offset * 28) + "deg)" : "rotateY(" + (-offset * 30) + "deg)") +
+        " scale(" + Math.max(0.62, 1 - distance * 0.16) + ")";
       card.style.opacity = distance > 2 ? "0" : String(1 - distance * 0.22);
       card.style.pointerEvents = distance > 2 ? "none" : "auto";
       card.style.zIndex = String(20 - distance);
@@ -1435,27 +1439,12 @@ function createDynamicIsland(store, splash, ctx) {
       currentWorkspace = item.text;
       projectView = "tasks";
       projectIndex = 0;
-      projectLoading = true;
+      projectLoading = false;
       renderProjects();
       placeProjectModal();
-      if (projectLoadTimer !== 0) clearInterval(projectLoadTimer);
-      var attempts = 0;
-      projectLoadTimer = setInterval(function () {
-        attempts += 1;
-        if (!projectOpen || projectView !== "tasks") {
-          clearInterval(projectLoadTimer);
-          projectLoadTimer = 0;
-          return;
-        }
-        var count = collectSessions().length;
-        renderTaskList();
-        if (count > 0 || attempts >= 20) {
-          projectLoading = false;
-          renderTaskList();
-          clearInterval(projectLoadTimer);
-          projectLoadTimer = 0;
-        }
-      }, 250);
+      window.setTimeout(function () {
+        if (projectOpen && projectView === "tasks") renderProjects();
+      }, 600);
     } else {
       item.target.click();
       closeProjects();
@@ -1481,12 +1470,13 @@ function createDynamicIsland(store, splash, ctx) {
   function onProjectPointerDown(event) {
     if (!projectOpen || event.button !== 0) return;
     if (event.target.closest(".dslg-carousel__nav, .dslg-carousel__back, .dslg-carousel__close")) return;
-    dragState = { x: event.clientX, moved: false, captured: false, id: event.pointerId };
+    dragState = { x: event.clientX, y: event.clientY, moved: false, captured: false, id: event.pointerId };
   }
 
   function onProjectPointerMove(event) {
     if (!dragState) return;
-    if (Math.abs(event.clientX - dragState.x) > 7) {
+    var delta = projectView === "tasks" ? event.clientY - dragState.y : event.clientX - dragState.x;
+    if (Math.abs(delta) > 7) {
       dragState.moved = true;
       if (!dragState.captured) {
         try {
@@ -1501,7 +1491,7 @@ function createDynamicIsland(store, splash, ctx) {
 
   function onProjectPointerUp(event) {
     if (!dragState) return;
-    var delta = event.clientX - dragState.x;
+    var delta = projectView === "tasks" ? event.clientY - dragState.y : event.clientX - dragState.x;
     var moved = dragState.moved;
     var captured = dragState.captured;
     dragState = null;
@@ -1518,49 +1508,16 @@ function createDynamicIsland(store, splash, ctx) {
     }
   }
 
-  function renderTaskList() {
-    projectTaskList.innerHTML = "";
-    var items = collectSessions();
-    if (items.length === 0 && projectLoading) {
-      var loading = document.createElement("div");
-      loading.className = "dslg-task-list__empty";
-      loading.textContent = "正在展开工作区任务…";
-      projectTaskList.appendChild(loading);
-      return;
-    }
-    items.push({ isNew: true, text: "＋ 新建任务" });
-    items.forEach(function (item) {
-      var row = document.createElement("button");
-      row.type = "button";
-      row.className = "dslg-task-list__item" + (item.isNew ? " is-new" : "");
-      row.innerHTML = "<strong></strong><small></small>";
-      row.querySelector("strong").textContent = item.text;
-      row.querySelector("small").textContent = item.isNew ? "创建新任务" : "打开任务";
-      row.addEventListener("click", function () { activateProject(item); });
-      projectTaskList.appendChild(row);
-    });
-  }
-
   function renderProjects() {
     if (!projectOpen) return;
     var isTasks = projectView === "tasks";
     projectModal.classList.toggle("is-tasks", isTasks);
     projectTitle.textContent = isTasks ? (currentWorkspace || "任务") : "工作区";
     projectBack.classList.toggle("is-visible", isTasks);
-    if (isTasks) {
-      projectTrack.innerHTML = "";
-      projectItems = [];
-      renderTaskList();
-      if (projectCounter) projectCounter.textContent = "";
-      if (projectHint) projectHint.textContent = "上下滚动选择任务";
-      placeProjectModal();
-      return;
-    }
-    projectTaskList.innerHTML = "";
-    if (projectHint) projectHint.textContent = "滚轮或拖动切换";
     projectTrack.innerHTML = "";
-    projectItems = collectWorkspaces().slice();
-    projectItems.push({ isNew: true, text: "＋ 新建工作区" });
+    projectTaskList.innerHTML = "";
+    projectItems = (isTasks ? collectSessions() : collectWorkspaces()).slice();
+    projectItems.push({ isNew: true, text: isTasks ? "＋ 新建任务" : "＋ 新建工作区" });
     if (projectIndex >= projectItems.length) projectIndex = 0;
     projectItems.forEach(function (item, index) {
       var card = document.createElement("button");
@@ -1568,7 +1525,9 @@ function createDynamicIsland(store, splash, ctx) {
       card.className = "dslg-carousel__card" + (item.isNew ? " is-new" : "");
       card.innerHTML = "<strong></strong><small></small>";
       card.querySelector("strong").textContent = item.text;
-      card.querySelector("small").textContent = item.isNew ? "创建新工作区" : "切换工作区";
+      card.querySelector("small").textContent = item.isNew
+        ? (isTasks ? "创建新任务" : "创建新工作区")
+        : (isTasks ? "打开任务" : "切换工作区");
       card.addEventListener("click", function () {
         if (Date.now() < dragSuppress) return;
         projectIndex = index;
@@ -1577,6 +1536,7 @@ function createDynamicIsland(store, splash, ctx) {
       });
       projectTrack.appendChild(card);
     });
+    if (projectHint) projectHint.textContent = isTasks ? "滚轮或上下拖动切换" : "滚轮或左右拖动切换";
     layoutProjects();
     placeProjectModal();
   }
