@@ -734,6 +734,7 @@ function createDynamicIsland(store, splash) {
     '      <span class="dslg-island__title">DSH</span>',
     '      <span class="dslg-island__mode">标准模式</span>',
     '    </div>',
+    '    <button class="dslg-island__projects" type="button">工作区</button>',
     '    <button class="dslg-island__gear" type="button" aria-label="液态玻璃设置">',
     '      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Zm8.1 4.9v-2.2l-2.1-.8a7.2 7.2 0 0 0-.7-1.7l1-2-1.6-1.6-2 1a7.2 7.2 0 0 0-1.7-.7L12.2 3H10l-.8 2.1a7.2 7.2 0 0 0-1.7.7l-2-1-1.6 1.6 1 2a7.2 7.2 0 0 0-.7 1.7l-2.1.8v2.2l2.1.8c.2.6.4 1.2.7 1.7l-1 2 1.6 1.6 2-1c.5.3 1.1.5 1.7.7l.8 2.1h2.2l.8-2.1c.6-.2 1.2-.4 1.7-.7l2 1 1.6-1.6-1-2c.3-.5.5-1.1.7-1.7l2.1-.8Z"/></svg>',
     '      <span>液态玻璃设置</span>',
@@ -788,6 +789,20 @@ function createDynamicIsland(store, splash) {
     '</div>',
   ].join("");
   document.body.appendChild(panel);
+
+  var projectModal = document.createElement("div");
+  projectModal.className = "dslg-project-modal";
+  projectModal.setAttribute("aria-hidden", "true");
+  projectModal.innerHTML = [
+    '<div class="dslg-project-modal__head">',
+    '  <button class="dslg-project-modal__back" type="button" aria-label="返回">‹</button>',
+    '  <span class="dslg-project-modal__title">工作区</span>',
+    '  <button class="dslg-project-modal__close" type="button" aria-label="关闭">×</button>',
+    '</div>',
+    '<div class="dslg-project-modal__list"></div>',
+    '<button class="dslg-project-modal__new" type="button">＋ 新建工作区</button>',
+  ].join("");
+  document.body.appendChild(projectModal);
   var panelOpen = false;
 
   var dot = host.querySelector(".dslg-island__dot");
@@ -805,7 +820,16 @@ function createDynamicIsland(store, splash) {
   var panelSurfaces = Array.prototype.slice.call(panel.querySelectorAll("[data-surface]"));
   var panelSplash = panel.querySelector(".dslg-island-panel__splash-switch");
   var panelClose = panel.querySelector(".dslg-island-panel__close");
+  var projectsButton = host.querySelector(".dslg-island__projects");
+  var projectBack = projectModal.querySelector(".dslg-project-modal__back");
+  var projectClose = projectModal.querySelector(".dslg-project-modal__close");
+  var projectTitle = projectModal.querySelector(".dslg-project-modal__title");
+  var projectList = projectModal.querySelector(".dslg-project-modal__list");
+  var projectNew = projectModal.querySelector(".dslg-project-modal__new");
   var liveBalance = { text: "—", at: 0, busy: false };
+  var projectOpen = false;
+  var projectView = "workspaces";
+  var currentWorkspace = "";
   var isOpen = false;
   var isBusy = false;
   var hiddenHeader = null;
@@ -928,7 +952,7 @@ function createDynamicIsland(store, splash) {
 
   function busyNow() {
     var nodes = Array.prototype.slice.call(document.querySelectorAll(
-      '[aria-busy="true"], [data-running="true"], [data-state="running"], [data-state="streaming"], [data-streaming], [data-streaming="true"], [class*="running"], [class*="streaming"], [class*="thinking"], [class*="generating"]'
+      '[data-state="running"], [data-thinking="true"], [class*="thinking"], [class*="Thinking"], [class*="reason"], [class*="Reason"]'
     ));
     for (var index = 0; index < nodes.length; index += 1) {
       var node = nodes[index];
@@ -940,17 +964,8 @@ function createDynamicIsland(store, splash) {
         (node.textContent || "") + " " +
         String(node.className || "")
       ).toLowerCase();
-      if (/停止|stop|running|streaming|thinking|generating|思考中|生成中|正在/.test(state)) return true;
+      if (/kema|reason|think|思考|推理/.test(state)) return true;
     }
-    var buttons = Array.prototype.slice.call(document.querySelectorAll("button, [role='button']"));
-    for (var buttonIndex = 0; buttonIndex < buttons.length; buttonIndex += 1) {
-      var button = buttons[buttonIndex];
-      if (insideHost(button) || !visible(button)) continue;
-      var label = ((button.getAttribute("aria-label") || "") + " " + (button.getAttribute("title") || "") + " " + (button.textContent || "")).toLowerCase();
-      if (/停止生成|停止|stop generating|stop|cancel|取消/.test(label)) return true;
-    }
-    var composer = document.querySelector("[data-composer-card]");
-    if (composer && /停止生成|正在思考|生成中|思考中|stop generating/i.test(composer.textContent || "")) return true;
     return false;
   }
 
@@ -997,18 +1012,51 @@ function createDynamicIsland(store, splash) {
     }
     if (conflict === host.classList.contains("is-conflicted")) return;
     host.classList.toggle("is-conflicted", conflict);
-    if (conflict) closePanel();
+    if (conflict) {
+      closePanel();
+      closeProjects();
+    }
+  }
+
+  function matchContextText(text) {
+    if (!text || text.length > 60) return "";
+    var match = text.match(/~?\s*[\d.,]+\s*[KMGkmg]?\s*\/\s*[\d.,]+\s*[KMGkmg]?/);
+    return match ? match[0].replace(/\s+/g, " ") : "";
   }
 
   function readContextUsage() {
-    var candidates = document.querySelectorAll('[class*="context"], [class*="Context"], [class*="meter"], [class*="Meter"], [data-context-usage]');
-    for (var index = 0; index < candidates.length; index += 1) {
-      var node = candidates[index];
-      if (insideHost(node) || !visible(node)) continue;
-      var text = textOf(node);
-      if (text.length > 40) continue;
-      var match = text.match(/~?[\d.]+[KkMm]?\s*\/\s*[\d.]+[KkMm]?/);
-      if (match) return match[0];
+    var roots = Array.prototype.slice.call(document.querySelectorAll('[class*="context" i], [class*="Context"], [class*="meter" i], [data-context-usage]'));
+    var composer = document.querySelector("[data-composer-card]");
+    if (composer) {
+      roots.push(composer);
+      if (composer.parentElement) roots.push(composer.parentElement);
+    }
+    for (var rootIndex = 0; rootIndex < roots.length; rootIndex += 1) {
+      var root = roots[rootIndex];
+      if (!root || insideHost(root)) continue;
+      var nodes = root.querySelectorAll("span, button, div, b, strong, [aria-label]");
+      for (var index = 0; index < nodes.length; index += 1) {
+        var node = nodes[index];
+        if (insideHost(node) || !visible(node)) continue;
+        var value = matchContextText(textOf(node));
+        if (value) return value;
+      }
+    }
+    try {
+      var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      var seen = 0;
+      var textNode = walker.nextNode();
+      while (textNode && seen < 6000) {
+        seen += 1;
+        var raw = (textNode.nodeValue || "").trim();
+        if (raw.length <= 60 && raw.indexOf("/") >= 0) {
+          var found = matchContextText(raw);
+          if (found && /~/.test(raw)) return found;
+        }
+        textNode = walker.nextNode();
+      }
+    } catch (error) {
+      /* TreeWalker unavailable. */
     }
     return "—";
   }
@@ -1124,6 +1172,165 @@ function createDynamicIsland(store, splash) {
     togglePanel(false);
   }
 
+  function sidebarRoot() {
+    return document.querySelector('[class*="_sidebarCol"]') || document.body;
+  }
+
+  function rowText(node) {
+    return textOf(node).replace(/\s+\d{1,2}:\d{2}$/, "").replace(/\s+(刚刚|昨天|今天)$/, "").trim();
+  }
+
+  function collectWorkspaces() {
+    var root = sidebarRoot();
+    var nodes = Array.prototype.slice.call(root.querySelectorAll('[data-row-key], [class*="workspace" i], [class*="project" i]'));
+    var seen = new Set();
+    var out = [];
+    nodes.forEach(function (node) {
+      if (insideHost(node) || !visible(node)) return;
+      var key = node.getAttribute("data-row-key") || "";
+      if (/^session[:_-]/i.test(key)) return;
+      var text = rowText(node);
+      if (!text || text.length > 60 || /新会话|新建会话|工作区|项目/.test(text)) return;
+      var target = node.closest("button, [role='button'], a") || node;
+      if (seen.has(text)) return;
+      seen.add(text);
+      out.push({ text: text, target: target });
+    });
+    if (out.length === 0) {
+      nodes = Array.prototype.slice.call(root.querySelectorAll('[class*="workspace" i] button, [class*="workspace" i] [role="button"]'));
+      nodes.forEach(function (node) {
+        if (insideHost(node) || !visible(node)) return;
+        var text = rowText(node);
+        if (!text || text.length > 60 || seen.has(text) || text === "新会话") return;
+        seen.add(text);
+        out.push({ text: text, target: node });
+      });
+    }
+    return out;
+  }
+
+  function collectSessions() {
+    var root = sidebarRoot();
+    var nodes = Array.prototype.slice.call(root.querySelectorAll('[data-row-key]'));
+    var seen = new Set();
+    var out = [];
+    nodes.forEach(function (node) {
+      if (insideHost(node) || !visible(node)) return;
+      var key = node.getAttribute("data-row-key") || "";
+      if (!/^session[:_-]/i.test(key)) return;
+      var text = rowText(node);
+      if (!text || seen.has(text) || /新会话|新建会话/.test(text)) return;
+      seen.add(text);
+      out.push({ text: text, target: node.closest("button, [role='button'], a") || node });
+    });
+    return out;
+  }
+
+  function renderProjects() {
+    if (!projectOpen) return;
+    projectModal.classList.toggle("is-tasks", projectView === "tasks");
+    projectTitle.textContent = projectView === "tasks" ? (currentWorkspace || "任务") : "工作区";
+    projectBack.classList.toggle("is-visible", projectView === "tasks");
+    projectNew.textContent = projectView === "tasks" ? "＋ 新建任务" : "＋ 新建工作区";
+    projectList.innerHTML = "";
+    var items = projectView === "tasks" ? collectSessions() : collectWorkspaces();
+    if (items.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "dslg-project-modal__empty";
+      empty.textContent = projectView === "tasks" ? "这个工作区还没有任务" : "没有找到工作区";
+      projectList.appendChild(empty);
+    }
+    items.forEach(function (item) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "dslg-project-modal__item";
+      button.textContent = item.text;
+      button.addEventListener("click", function () {
+        if (projectView === "workspaces") {
+          item.target.click();
+          currentWorkspace = item.text;
+          window.setTimeout(function () {
+            projectView = "tasks";
+            renderProjects();
+            placeProjectModal();
+          }, 420);
+        } else {
+          item.target.click();
+          closeProjects();
+        }
+      });
+      projectList.appendChild(button);
+    });
+    placeProjectModal();
+  }
+
+  function placeProjectModal() {
+    if (!projectOpen) return;
+    var width = Math.min(window.innerWidth - 24, 420);
+    var islandRect = host.getBoundingClientRect();
+    projectModal.style.width = width + "px";
+    projectModal.style.left = Math.round(Math.max(12, Math.min(window.innerWidth - width - 12, window.innerWidth / 2 - width / 2))) + "px";
+    projectModal.style.top = Math.round(Math.min(window.innerHeight * 0.28, islandRect.bottom + 12)) + "px";
+  }
+
+  function toggleProjects(next) {
+    var value = typeof next === "boolean" ? next : !projectOpen;
+    if (value === projectOpen) return;
+    projectOpen = value;
+    projectModal.classList.toggle("is-on", projectOpen);
+    projectModal.setAttribute("aria-hidden", projectOpen ? "false" : "true");
+    if (projectOpen) {
+      closePanel();
+      projectView = "workspaces";
+      currentWorkspace = "";
+      renderProjects();
+    }
+  }
+
+  function closeProjects() {
+    toggleProjects(false);
+  }
+
+  function findSidebarButton(pattern) {
+    var root = sidebarRoot();
+    var buttons = Array.prototype.slice.call(root.querySelectorAll("button, [role='button']"));
+    for (var index = 0; index < buttons.length; index += 1) {
+      var button = buttons[index];
+      if (insideHost(button) || !visible(button)) continue;
+      var label = (button.getAttribute("aria-label") || "") + " " + (button.getAttribute("title") || "") + " " + textOf(button);
+      if (pattern.test(label)) return button;
+    }
+    return null;
+  }
+
+  function onNewWorkspace() {
+    var target = findSidebarButton(/新建工作区|创建工作区|添加工作区|New workspace|Add workspace/i);
+    if (!target) {
+      var labels = Array.prototype.slice.call(sidebarRoot().querySelectorAll("*")).filter(function (node) {
+        return !insideHost(node) && visible(node) && textOf(node) === "工作区";
+      });
+      if (labels.length) {
+        var section = labels[0].parentElement;
+        var plus = section && section.querySelector('button[aria-label*="新" i], button[aria-label*="add" i]');
+        if (plus) target = plus;
+      }
+    }
+    if (target) target.click();
+    closeProjects();
+  }
+
+  function onNewTask() {
+    var target = findSidebarButton(/新会话|新建会话|新建任务|New session|New chat/i);
+    if (target) target.click();
+    closeProjects();
+  }
+
+  function onProjectsClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleProjects(!projectOpen);
+  }
+
   function refreshBalance() {
     if (liveBalance.busy || Date.now() - liveBalance.at < 12000) return;
     if (typeof fetch !== "function") return;
@@ -1205,15 +1412,23 @@ function createDynamicIsland(store, splash) {
   }
 
   function onOutside(event) {
-    if (panelOpen && !panel.contains(event.target) && !host.contains(event.target)) {
+    if (projectOpen && !projectModal.contains(event.target) && !host.contains(event.target)) {
+      closeProjects();
+      return;
+    }
+    if (panelOpen && !panel.contains(event.target) && !host.contains(event.target) && !projectModal.contains(event.target)) {
       closePanel();
       return;
     }
-    if (isOpen && !host.contains(event.target) && !panel.contains(event.target)) setOpen(false);
+    if (isOpen && !host.contains(event.target) && !panel.contains(event.target) && !projectModal.contains(event.target)) setOpen(false);
   }
 
   function onKeyDown(event) {
     if (event.key === "Escape") {
+      if (projectOpen) {
+        closeProjects();
+        return;
+      }
       if (panelOpen) {
         closePanel();
         return;
@@ -1228,6 +1443,7 @@ function createDynamicIsland(store, splash) {
 
   host.addEventListener("click", onHostClick);
   host.addEventListener("keydown", onKeyDown);
+  projectsButton.addEventListener("click", onProjectsClick);
   gear.addEventListener("click", onGearClick);
   more.addEventListener("click", onMoreClick);
   tabButtons.forEach(function (button) { button.addEventListener("click", onTabClick); });
@@ -1236,12 +1452,22 @@ function createDynamicIsland(store, splash) {
   panelPresets.forEach(function (button) { button.addEventListener("click", onPresetClick); });
   panelSurfaces.forEach(function (button) { button.addEventListener("click", onSurfaceClick); });
   panelSplash.addEventListener("click", onSplashClick);
+  projectClose.addEventListener("click", closeProjects);
+  projectBack.addEventListener("click", function () {
+    projectView = "workspaces";
+    renderProjects();
+  });
+  projectNew.addEventListener("click", function () {
+    if (projectView === "tasks") onNewTask();
+    else onNewWorkspace();
+  });
   unsubscribePanel = store.subscribe(function () {
     if (panelOpen) renderPanel();
   });
   document.addEventListener("pointerdown", onOutside, true);
   window.addEventListener("resize", place);
   window.addEventListener("resize", placePanel);
+  window.addEventListener("resize", placeProjectModal);
   updateHeader();
   updateBusy();
   updateMeta();
@@ -1252,6 +1478,7 @@ function createDynamicIsland(store, splash) {
     updateConflict();
     place();
     placePanel();
+    placeProjectModal();
   }, 360);
   headerTimer = setInterval(function () {
     if (isOpen && !hiddenHeader) updateHeader();
@@ -1273,8 +1500,10 @@ function createDynamicIsland(store, splash) {
       document.removeEventListener("pointerdown", onOutside, true);
       window.removeEventListener("resize", place);
       window.removeEventListener("resize", placePanel);
+      window.removeEventListener("resize", placeProjectModal);
       host.remove();
       panel.remove();
+      projectModal.remove();
     },
   };
 }

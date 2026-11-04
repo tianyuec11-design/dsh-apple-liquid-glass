@@ -1,7 +1,7 @@
 {
   "name": "dsh-apple-liquid-glass",
-  "version": "0.4.4",
-  "description": "Apple-style liquid glass for the DSH web client with a deep-navy Dynamic Island, in-island glass settings, live balance/context/time, conflict auto-hide, reliable red/green busy signal, stroke-order hello, and a compact model-switch particle orb.",
+  "version": "0.5.0",
+  "description": "Apple-style liquid glass for the DSH web client with a deep-navy Dynamic Island, in-island glass settings, workspace/task pickers, live balance/context/time, conflict auto-hide, thinking-only red dot, stroke-order hello, and a compact model-switch particle orb.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
