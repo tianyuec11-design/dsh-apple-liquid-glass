@@ -1481,24 +1481,37 @@ function createDynamicIsland(store, splash, ctx) {
   function onProjectPointerDown(event) {
     if (!projectOpen || event.button !== 0) return;
     if (event.target.closest(".dslg-carousel__nav, .dslg-carousel__back, .dslg-carousel__close")) return;
-    dragState = { x: event.clientX, moved: false, id: event.pointerId };
-    try {
-      projectStage.setPointerCapture(event.pointerId);
-    } catch (error) {
-      /* Pointer capture may be unavailable. */
-    }
+    dragState = { x: event.clientX, moved: false, captured: false, id: event.pointerId };
   }
 
   function onProjectPointerMove(event) {
     if (!dragState) return;
-    if (Math.abs(event.clientX - dragState.x) > 7) dragState.moved = true;
+    if (Math.abs(event.clientX - dragState.x) > 7) {
+      dragState.moved = true;
+      if (!dragState.captured) {
+        try {
+          projectStage.setPointerCapture(dragState.id);
+          dragState.captured = true;
+        } catch (error) {
+          /* Pointer capture may be unavailable. */
+        }
+      }
+    }
   }
 
   function onProjectPointerUp(event) {
     if (!dragState) return;
     var delta = event.clientX - dragState.x;
     var moved = dragState.moved;
+    var captured = dragState.captured;
     dragState = null;
+    if (captured) {
+      try {
+        projectStage.releasePointerCapture(event.pointerId);
+      } catch (error) {
+        /* Pointer capture may be unavailable. */
+      }
+    }
     if (moved) {
       dragSuppress = Date.now() + 360;
       moveProjects(delta > 0 ? -1 : 1);
