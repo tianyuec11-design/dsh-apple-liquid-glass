@@ -875,6 +875,18 @@ html.dslg-splash-lock {
   pointer-events: none;
 }
 
+.dslg-splash__globe {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  animation: dslg-splash-canvas-in 1.1s ease-out 0.04s forwards;
+  pointer-events: none;
+}
+
 .dslg-splash__skip {
   position: absolute;
   z-index: 3;
@@ -950,6 +962,17 @@ html.dslg-splash-lock {
   border-radius: 50%;
   background: #ff4a3d;
   box-shadow: 0 0 9px 2px rgba(255, 74, 61, 0.55);
+}
+
+.dslg-splash__credit {
+  position: absolute;
+  left: 24px;
+  bottom: 22px;
+  z-index: 3;
+  color: rgba(200, 225, 255, 0.32);
+  font: 500 9px/1.3 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  letter-spacing: 0.04em;
+  pointer-events: none;
 }
 
 @keyframes dslg-splash-canvas-in {
@@ -1048,7 +1071,8 @@ html.dslg-splash-lock {
   to { translate: 3% -2%; scale: 1.04; }
 }
 
-.dslg-splash.is-reduced .dslg-splash__canvas {
+.dslg-splash.is-reduced .dslg-splash__canvas,
+.dslg-splash.is-reduced .dslg-splash__globe {
   animation: none;
   opacity: 1;
 }
@@ -1072,6 +1096,7 @@ html.dslg-splash-lock {
 
   .dslg-splash__glow,
   .dslg-splash__canvas,
+  .dslg-splash__globe,
   .dslg-splash__text,
   .dslg-splash__hint {
     animation: none !important;

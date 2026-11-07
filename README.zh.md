@@ -50,7 +50,7 @@ dsh plugin --profile web add 'github:tianyuec11-design/dsh-apple-liquid-glass'
 也可以直接安装固定版本：
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.6.2/dsh-apple-liquid-glass-0.6.2.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.6.3/dsh-apple-liquid-glass-0.6.3.tgz
 ```
 
 > dshmarket 的 **主题** 标签页只列出目录中收录的主题；从 GitHub 安装的这个主题会出现在 **已安装插件** 里，这是正常的。它仍然是一个完整的 bundle 主题插件，可以正常启用/停用。
@@ -83,7 +83,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-会生成 `dsh-apple-liquid-glass-0.6.2.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
+会生成 `dsh-apple-liquid-glass-0.6.3.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
 
 ---
 
@@ -121,9 +121,9 @@ npm pack
 
 ### 开屏动效
 
-- 全屏旋转地球：外轮廓由一圈蓝色光点勾出，海洋完全留空，陆地由约 3400 颗蓝色光粒子组成；大陆轮廓来自高德地图瓦片生成的 land mask，不再使用手绘多边形。
-- 粒子颜色在深蓝 `#0b3aff` 与浅蓝 `#96ebff` 之间持续流动；球体绕垂直轴缓慢旋转，并带约 23° 倾角。
-- 没有海洋填充或实体球面，只用轮廓光点、陆地粒子和很淡的大气辉光定义地球。
+- 全屏旋转地球：用高德地图瓦片生成等距圆柱纹理，再以 WebGL 贴到球体上，呈现真实大陆轮廓；海洋半透明深蓝，边缘保留一圈蓝色光点。WebGL 不可用时回退到粒子地球。
+- 地球整体做深蓝到浅蓝的色调映射，球体绕垂直轴旋转并带约 23° 倾角；定位完成后红色光斑叠加在真实经纬度上。
+- 海洋以半透明深蓝呈现，陆地保留高德瓦片纹理；外层再加轮廓光点、大气辉光和红色定位脉冲。
 - 开屏先请求 IP 地理定位（短超时、会话缓存；失败时用系统时区估算），然后让地球以 **1–2 圈、4 秒**旋转到目标经度。\n- 旋转结束后在 IP 位置显示一个**闪烁的红色光斑，持续 3 秒**；右下角提供液态玻璃「跳过」按钮，也可点击任意处或按 `Esc` 跳过。\n- 在灵动岛「液态玻璃设置 → 高德定位」里粘贴高德 **Web 服务 Key** 后，会使用高德 IP 定位 + 逆地理编码显示城市；未填写时回退到普通 IP 服务/系统时区。
 - `prefers-reduced-motion` 下显示一帧静态地球，约 2.6 秒后淡出。
 - ![开屏地球](docs/preview-splash-earth.png)
@@ -263,6 +263,8 @@ MIT。见 [LICENSE](LICENSE)。
 开屏字体 **Dancing Script** © The Dancing Script Project Authors，按 SIL Open Font License 1.1 分发；完整许可见 [assets/fonts/OFL.txt](assets/fonts/OFL.txt)。
 
 「Liquid Glass」在这里描述视觉材质；本项目与 Apple Inc. 无隶属或背书关系。
+
+
 
 
 
