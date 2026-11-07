@@ -775,6 +775,30 @@ function dslgAmapReverseLabel(key, latitude, longitude) {
   });
 }
 
+function dslgFetchHostGeo() {
+  if (typeof fetch !== "function") return Promise.reject(new Error("no fetch"));
+  return fetch("/dsh-apple-liquid-glass/ip", { cache: "no-store" }).then(function (response) {
+    if (!response.ok) throw new Error("host ip HTTP " + response.status);
+    return response.json();
+  }).then(function (data) {
+    if (!data || !data.ok) throw new Error("host ip unavailable");
+    var geo = {
+      lat: Number(data.lat),
+      lon: Number(data.lon),
+      label: data.label || "",
+      ip: data.ip || "",
+      source: data.source || "host"
+    };
+    if (!dslgGeoValid(geo)) throw new Error("host ip invalid");
+    try {
+      window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v3", JSON.stringify(geo));
+    } catch (error) {
+      /* Session storage may be unavailable. */
+    }
+    return geo;
+  });
+}
+
 function dslgFetchGeo() {
   var cached = dslgGeoCache();
   if (cached) return Promise.resolve(cached);
@@ -832,21 +856,23 @@ function dslgFetchGeo() {
       return attempt(index + 1);
     });
   }
-  return attempt(0).then(function (geo) {
-    var amapKey = dslgAmapKey();
-    if (!amapKey) return geo;
-    return dslgAmapReverseLabel(amapKey, geo.lat, geo.lon).then(function (label) {
-      if (label) {
-        geo.label = label;
-        try {
-          window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v3", JSON.stringify(geo));
-        } catch (error) {
-          /* Session storage may be unavailable. */
+  return dslgFetchHostGeo().catch(function () {
+    return attempt(0).then(function (geo) {
+      var amapKey = dslgAmapKey();
+      if (!amapKey) return geo;
+      return dslgAmapReverseLabel(amapKey, geo.lat, geo.lon).then(function (label) {
+        if (label) {
+          geo.label = label;
+          try {
+            window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v3", JSON.stringify(geo));
+          } catch (error) {
+            /* Session storage may be unavailable. */
+          }
         }
-      }
-      return geo;
-    }).catch(function () {
-      return geo;
+        return geo;
+      }).catch(function () {
+        return geo;
+      });
     });
   });
 }
