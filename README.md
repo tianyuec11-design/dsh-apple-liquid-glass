@@ -1,6 +1,6 @@
 # Liquid Glass — DSH Apple Liquid Glass
 
-An Apple-style liquid-glass material for the DeepSeek Harness web client: composer, sidebar controls, model picker, and send button, with a faint flowing blue glow along the composer's top edge and sides that freezes while you type. The opening **hello** follows its stroke order, switching models spawns a small particle orb above the model trigger, and a Dynamic Island at the top integrates the conversation header and Liquid Glass settings. The original four per-surface **scope** switches are preserved. Intensity, scope, and splash are configured in **Settings → Liquid Glass**. The page background stays untouched.
+An Apple-style liquid-glass material for the DeepSeek Harness web client: composer, sidebar controls, model picker, and send button, with a faint flowing blue glow along the composer's top edge and sides that freezes while you type. The opening is a rotating blue-particle Earth with blank oceans and flowing land particles, switching models spawns a small particle orb above the model trigger, and a Dynamic Island at the top integrates the conversation header and Liquid Glass settings. The original four per-surface **scope** switches are preserved. Intensity, scope, and splash are configured in **Settings → Liquid Glass**. The page background stays untouched.
 
 ![Light](docs/preview-light.png)
 
@@ -50,7 +50,7 @@ Restart `dsh web` afterwards. `dsh plugin` needs pnpm on `PATH`; the Desktop app
 A pinned release is also available as:
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.5.6/dsh-apple-liquid-glass-0.5.6.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.6.0/dsh-apple-liquid-glass-0.6.0.tgz
 ```
 
 > dshmarket's **Themes** tab only lists themes in its catalog. A GitHub-installed theme appears under **Installed plugins**; it is still a complete bundle theme and can be enabled or disabled normally.
@@ -79,7 +79,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-Then install `dsh-apple-liquid-glass-0.5.6.tgz` through the plugin manager.
+Then install `dsh-apple-liquid-glass-0.6.0.tgz` through the plugin manager.
 
 ---
 
@@ -117,10 +117,12 @@ All four are on by default. Turning one off restores that surface to native imme
 
 ### Opening animation
 
-- An Apple-event-style handwritten lowercase **hello** on a translucent frosted-black stage. It is revealed along one centreline path in **h → e → l → l → o** order; the tracking dot is gone and a wider soft mask keeps letters complete as they appear.
-- The bundled **Dancing Script** font (SIL OFL 1.1) and the original light blue/white gradient are unchanged.
-- About 5–7 seconds; click anywhere or press `Esc` to skip.
-- With `prefers-reduced-motion`, a static hello is shown for about 2 seconds.
+- A full-screen rotating particle Earth: the outline is a ring of blue light points, the oceans are completely blank, and the land is made of about 3,400 blue light particles.
+- Particle colours flow continuously between deep blue `#0b3aff` and light blue `#96ebff`; the globe rotates around its vertical axis with a ~23° tilt.
+- There is no ocean fill or solid sphere — only the rim points, land particles, and a faint atmospheric glow define the Earth.
+- About 6.8 seconds; click anywhere or press `Esc` to skip.
+- With `prefers-reduced-motion`, one static frame is shown for about 2.6 seconds.
+- ![Particle Earth opening](docs/preview-splash-earth.png)
 
 ### Model-switch particle orb
 
@@ -160,7 +162,7 @@ The page background, message bubbles, header, and the model dropdown menu itself
 - At 0% the controller removes `body[data-dslg-glass="on"]` and every `--dslg-*` variable; all surface selectors stop matching.
 - The Settings section registers through DSH's `settings.section` slot (`slots` + `locale`); no button is added to the chat surface.
 - Surface scope is stored as `surfaces` (composer / sidebar / model / send). The controller writes `body[data-dslg-composer|sidebar|model|send="on|off"]`, and every material selector is narrowed by its surface attribute, so turning one off removes only that group of overrides.
-- The opening animation is a full-screen DOM layer with an embedded Dancing Script WOFF2, an SVG mask path that follows the h→e→l→l→o centreline, gradient text, and a pen-tip dot. `getTotalLength()` / `getPointAtLength()` keep the mask and the tip in sync; writing starts after the font is ready.
+- The opening is now a full-screen canvas particle Earth: low-resolution continent polygons, Fibonacci sphere sampling, orthographic projection with vertical-axis rotation/tilt, additive rim and land particles, and a flowing deep-blue-to-light-blue colour phase. The ocean is never filled.
 - The model-switch orb is a 96px 2D canvas: Fibonacci sphere + two flowing ribbons, theme-aware blue/cyan sprites, and a `source-atop` gradient tint. It is positioned just above the model trigger, pointer-transparent, and removed after 5s of flow + 5s of fade.
 - The Dynamic Island is a fixed glass pill sized 5cm × 1cm at top 1cm, horizontally centred from the composer's bounding box. It expands to 680px × 150px. The state dot watches the composer's primary button `aria-label` (e.g. 停止生成) and `aria-busy`; the expanded header is read from the host title/mode/tab DOM and temporarily hidden behind the island.
 - The model trigger is watched with a `MutationObserver` on its accessible name/text. The sphere only plays when the user interacted with the model selector in the last 15s and the model label actually changed, so initial model hydration does not fire it.
@@ -242,6 +244,7 @@ MIT. See [LICENSE](LICENSE).
 The opening font **Dancing Script** © The Dancing Script Project Authors, distributed under the SIL Open Font License 1.1; see [assets/fonts/OFL.txt](assets/fonts/OFL.txt).
 
 "Liquid Glass" describes the visual material. This project is not affiliated with or endorsed by Apple Inc.
+
 
 
 

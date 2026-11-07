@@ -1,7 +1,7 @@
 {
   "name": "dsh-apple-liquid-glass",
-  "version": "0.5.6",
-  "description": "Apple-style liquid glass for the DSH web client with a deep-navy Dynamic Island, clickable horizontal workspace carousel and vertical-axis task carousel, live context percentage, in-island glass settings, conflict auto-hide, thinking-only red dot, stroke-order hello, and a compact model-switch particle orb.",
+  "version": "0.6.0",
+  "description": "Apple-style liquid glass for the DSH web client with a rotating particle Earth opening, deep-navy Dynamic Island, horizontal workspace and vertical task carousels, live context percentage, in-island glass settings, conflict auto-hide, thinking-only red dot, and a compact model-switch particle orb.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

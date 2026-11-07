@@ -507,6 +507,80 @@ function createMaterial(store) {
    Opening splash
    -------------------------------------------------------------------------- */
 
+var DSLG_EARTH_POLYGONS = [
+  [[-168, 65], [-165, 71], [-150, 71], [-135, 70], [-120, 72], [-100, 74], [-85, 73], [-70, 70], [-60, 66], [-55, 58], [-63, 50], [-70, 45], [-75, 38], [-81, 31], [-81, 25], [-90, 20], [-97, 18], [-105, 20], [-114, 28], [-124, 40], [-132, 54], [-145, 60], [-158, 58], [-168, 65]],
+  [[-97, 18], [-90, 15], [-84, 10], [-78, 8], [-80, 7], [-86, 12], [-92, 16], [-97, 18]],
+  [[-58, 82], [-20, 82], [-18, 70], [-30, 60], [-45, 60], [-55, 68], [-58, 82]],
+  [[-81, 10], [-70, 12], [-60, 10], [-50, 0], [-35, -6], [-38, -20], [-48, -25], [-58, -38], [-65, -55], [-72, -52], [-75, -40], [-78, -20], [-81, -5], [-81, 10]],
+  [[-10, 36], [-9, 43], [-2, 48], [0, 50], [-5, 58], [2, 62], [10, 64], [18, 70], [30, 70], [40, 60], [40, 48], [30, 45], [28, 40], [18, 40], [12, 38], [3, 38], [-5, 36], [-10, 36]],
+  [[-17, 15], [-17, 25], [-10, 35], [10, 37], [25, 32], [35, 30], [43, 12], [51, 10], [42, -10], [35, -25], [25, -34], [15, -35], [8, -25], [0, -5], [-10, 5], [-17, 15]],
+  [[30, 70], [50, 75], [70, 75], [90, 76], [110, 74], [130, 72], [150, 70], [170, 68], [180, 66], [180, 55], [165, 50], [155, 45], [145, 40], [135, 35], [125, 30], [122, 22], [115, 15], [108, 10], [105, 2], [100, -5], [98, 8], [90, 20], [80, 25], [70, 25], [60, 28], [50, 32], [42, 40], [35, 50], [30, 60], [30, 70]],
+  [[68, 24], [72, 20], [75, 12], [80, 8], [87, 20], [88, 24], [80, 28], [72, 28], [68, 24]],
+  [[97, 20], [102, 20], [109, 12], [105, 5], [100, 8], [97, 20]],
+  [[35, 30], [43, 30], [52, 22], [58, 22], [55, 15], [45, 12], [38, 20], [35, 30]],
+  [[113, -22], [122, -18], [130, -12], [142, -11], [153, -25], [150, -38], [140, -38], [130, -32], [115, -34], [113, -22]],
+  [[-180, -70], [180, -70], [180, -90], [-180, -90]],
+  [[-5, 50], [-3, 58], [1, 58], [2, 52], [-4, 50]],
+  [[43, -13], [50, -16], [49, -25], [44, -22], [43, -13]]
+];
+var DSLG_EARTH_ISLANDS = [
+  [138, 37, 4], [141, 41, 3], [132, 33, 2.5], [120, -2, 3], [110, -7, 4], [125, 2, 3],
+  [135, -4, 3], [100, 1, 2.5], [174, -41, 2], [168, -45, 2], [122, 12, 2.5], [125, 10, 2],
+  [-77, 20, 1.8], [-72, 19, 1.2], [55, -21, 1.2]
+];
+var dslgEarthCache = null;
+
+function dslgEarthIsLand(latitude, longitude) {
+  if (latitude < -70) return true;
+  for (var index = 0; index < DSLG_EARTH_POLYGONS.length; index += 1) {
+    var polygon = DSLG_EARTH_POLYGONS[index];
+    var inside = false;
+    for (var current = 0, previous = polygon.length - 1; current < polygon.length; previous = current, current += 1) {
+      var xi = polygon[current][0];
+      var yi = polygon[current][1];
+      var xj = polygon[previous][0];
+      var yj = polygon[previous][1];
+      if (((yi > latitude) !== (yj > latitude)) && (longitude < (xj - xi) * (latitude - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    if (inside) return true;
+  }
+  for (var island = 0; island < DSLG_EARTH_ISLANDS.length; island += 1) {
+    var item = DSLG_EARTH_ISLANDS[island];
+    var dx = (longitude - item[0]) * Math.cos(latitude * Math.PI / 180);
+    var dy = latitude - item[1];
+    if (dx * dx + dy * dy < item[2] * item[2]) return true;
+  }
+  return false;
+}
+
+function dslgEarthParticles() {
+  if (dslgEarthCache !== null) return dslgEarthCache;
+  var target = window.innerWidth < 720 ? 2200 : 3400;
+  var candidates = target * 9;
+  var golden = Math.PI * (3 - Math.sqrt(5));
+  var points = [];
+  for (var index = 0; index < candidates && points.length < target; index += 1) {
+    var y = 1 - (index / (candidates - 1)) * 2;
+    var radius = Math.sqrt(Math.max(0, 1 - y * y));
+    var theta = golden * index;
+    var x = Math.cos(theta) * radius;
+    var z = Math.sin(theta) * radius;
+    var latitude = Math.asin(y) * 180 / Math.PI;
+    var longitude = Math.atan2(z, x) * 180 / Math.PI;
+    if (!dslgEarthIsLand(latitude, longitude)) continue;
+    points.push({
+      x: x,
+      y: y,
+      z: z,
+      phase: Math.random() * Math.PI * 2,
+      spark: Math.random(),
+      size: 0.8 + Math.random() * 1.55
+    });
+  }
+  dslgEarthCache = points;
+  return points;
+}
+
 function createSplash(store) {
   var active = null;
   var reducedMotion = false;
@@ -525,36 +599,7 @@ function createSplash(store) {
     overlay.setAttribute("aria-hidden", "true");
     overlay.innerHTML = [
       '<div class="dslg-splash__glow" aria-hidden="true"></div>',
-      '<div class="dslg-splash__stage">',
-      '  <div class="dslg-splash__word">',
-      '    <svg class="dslg-splash__svg" viewBox="0 0 1000 400" role="img" aria-label="hello">',
-      '      <defs>',
-      '        <linearGradient id="dslg-hello-fill" x1="0" y1="0" x2="1" y2="0.25">',
-      '          <stop offset="0" stop-color="#ffffff"/>',
-      '          <stop offset="0.16" stop-color="#e8f6ff"/>',
-      '          <stop offset="0.36" stop-color="#9fd4ff"/>',
-      '          <stop offset="0.52" stop-color="#5aa9ff"/>',
-      '          <stop offset="0.70" stop-color="#c9ebff"/>',
-      '          <stop offset="1" stop-color="#ffffff"/>',
-      '        </linearGradient>',
-      '        <linearGradient id="dslg-hello-sheen" x1="0" y1="0" x2="0" y2="1">',
-      '          <stop offset="0" stop-color="#ffffff" stop-opacity="0.82"/>',
-      '          <stop offset="0.56" stop-color="#ffffff" stop-opacity="0"/>',
-      '        </linearGradient>',
-      '        <filter id="dslg-mask-soft" x="-20%" y="-20%" width="140%" height="140%">',
-      '          <feGaussianBlur stdDeviation="8"/>',
-      '        </filter>',
-      '        <mask id="dslg-hello-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="400">',
-      '          <rect width="1000" height="400" fill="#000"/>',
-      '          <path class="dslg-splash__write-path" d="M 331 72 C 322 92 305 128 285 170 C 264 215 250 270 246 318 C 244 333 252 338 261 326 C 279 300 292 262 305 238 C 316 219 331 209 344 213 C 358 218 365 238 365 266 C 365 290 361 309 356 322 C 371 310 382 288 392 262 C 401 240 414 226 424 228 C 435 231 432 254 419 273 C 407 290 397 303 401 314 C 407 328 431 328 449 314 C 461 304 470 290 481 278 C 493 249 510 200 529 155 C 546 115 563 82 575 67 C 583 57 588 72 582 100 C 572 150 551 215 537 267 C 528 301 526 320 531 330 C 539 342 553 334 566 310 C 578 288 589 268 602 248 C 617 210 636 158 652 112 C 661 87 670 70 678 67 C 688 63 690 82 682 116 C 671 167 654 225 641 272 C 633 302 631 321 637 330 C 645 340 659 330 672 307 C 682 289 694 272 706 262 C 718 252 731 248 739 255 C 749 264 748 283 736 296 C 724 309 705 312 694 302 C 685 293 686 278 697 270 C 710 260 728 260 744 256 C 755 253 766 247 772 239" fill="none" stroke="#fff" stroke-width="118" stroke-linecap="round" stroke-linejoin="round" filter="url(#dslg-mask-soft)"/>',
-      '          <rect class="dslg-splash__complete" width="1000" height="400" fill="#fff" opacity="0"/>',
-      '        </mask>',
-      '      </defs>',
-      '      <text class="dslg-splash__text" x="500" y="300" text-anchor="middle" fill="url(#dslg-hello-fill)" mask="url(#dslg-hello-mask)">hello</text>',
-      '      <text class="dslg-splash__text dslg-splash__text--sheen" x="500" y="300" text-anchor="middle" fill="url(#dslg-hello-sheen)" mask="url(#dslg-hello-mask)">hello</text>',
-      '    </svg>',
-      '  </div>',
-      "</div>",
+      '<canvas class="dslg-splash__canvas" aria-label="旋转的地球"></canvas>',
       '<div class="dslg-splash__hint"></div>',
     ].join("\n");
     var hint = overlay.querySelector(".dslg-splash__hint");
@@ -562,85 +607,135 @@ function createSplash(store) {
     document.body.appendChild(overlay);
     document.documentElement.classList.add("dslg-splash-lock");
 
+    var canvas = overlay.querySelector(".dslg-splash__canvas");
+    var context = canvas.getContext("2d");
+    var points = dslgEarthParticles();
     var gone = false;
     var leaving = false;
-    var readyTimer = 0;
-    var removeTimer = 0;
+    var frameHandle = 0;
+    var resizeHandler = null;
     var skipTimer = 0;
-    var writingTimer = 0;
-    var writingRaf = 0;
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
 
-    function startWriting() {
-      writingTimer = 0;
-      if (gone || leaving) return;
-      var path = overlay.querySelector(".dslg-splash__write-path");
-      var complete = overlay.querySelector(".dslg-splash__complete");
-      if (!path || !complete) return;
-      var length = 0;
-      try {
-        length = path.getTotalLength();
-      } catch (error) {
-        length = 0;
-      }
-      if (!length) {
-        complete.setAttribute("opacity", "1");
-        return;
-      }
-
-      path.style.strokeDasharray = length + "px";
-      path.style.strokeDashoffset = length + "px";
-      var startedAt = 0;
-      var duration = 4700;
-
-      function frame(now) {
-        if (gone || leaving) return;
-        if (startedAt === 0) startedAt = now;
-        var progress = Math.min(1, (now - startedAt) / duration);
-        var eased = progress * progress * (3 - 2 * progress);
-        path.style.strokeDashoffset = String(length * (1 - eased));
-        if (progress >= 0.88) {
-          complete.setAttribute("opacity", String(Math.min(1, (progress - 0.88) / 0.12)));
-        }
-        if (progress < 1) {
-          writingRaf = requestAnimationFrame(frame);
-        } else {
-          writingRaf = 0;
-        }
-      }
-
-      writingRaf = requestAnimationFrame(frame);
+    function resize() {
+      var width = window.innerWidth;
+      var height = window.innerHeight;
+      canvas.width = Math.max(1, Math.round(width * dpr));
+      canvas.height = Math.max(1, Math.round(height * dpr));
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
-    function ready() {
-      if (gone || leaving || overlay.classList.contains("is-ready")) return;
-      overlay.classList.add("is-ready");
-      if (readyTimer !== 0) {
-        clearTimeout(readyTimer);
-        readyTimer = 0;
+    function draw(now) {
+      if (!context) return;
+      var width = window.innerWidth;
+      var height = window.innerHeight;
+      var centerX = width / 2;
+      var centerY = height * 0.5;
+      var globeRadius = Math.min(width, height) * 0.3;
+      context.clearRect(0, 0, width, height);
+      context.globalCompositeOperation = "lighter";
+
+      var atmosphere = context.createRadialGradient(centerX, centerY, globeRadius * 0.86, centerX, centerY, globeRadius * 1.3);
+      atmosphere.addColorStop(0, "rgba(28, 90, 220, 0)");
+      atmosphere.addColorStop(0.55, "rgba(44, 132, 255, 0.07)");
+      atmosphere.addColorStop(1, "rgba(92, 190, 255, 0)");
+      context.fillStyle = atmosphere;
+      context.beginPath();
+      context.arc(centerX, centerY, globeRadius * 1.3, 0, Math.PI * 2);
+      context.fill();
+
+      var angle = now * 0.00032;
+      var tilt = -0.19;
+      var cosAngle = Math.cos(angle);
+      var sinAngle = Math.sin(angle);
+      var cosTilt = Math.cos(tilt);
+      var sinTilt = Math.sin(tilt);
+
+      for (var index = 0; index < points.length; index += 1) {
+        var point = points[index];
+        var rotatedX = point.x * cosAngle + point.z * sinAngle;
+        var rotatedZ = -point.x * sinAngle + point.z * cosAngle;
+        var tiltedX = rotatedX * cosTilt - point.y * sinTilt;
+        var tiltedY = rotatedX * sinTilt + point.y * cosTilt;
+        if (rotatedZ <= 0.015) continue;
+        var depth = rotatedZ;
+        var screenX = centerX + tiltedX * globeRadius;
+        var screenY = centerY - tiltedY * globeRadius;
+        var flow = 0.5 + 0.5 * Math.sin(now * 0.0014 + point.phase + tiltedX * 2.1 + tiltedY * 2.6);
+        var red = Math.round(24 + 132 * flow);
+        var green = Math.round(92 + 146 * flow);
+        var blue = 255;
+        var alpha = (0.22 + 0.78 * Math.pow(depth, 0.7)) * (0.78 + 0.22 * flow);
+        var size = point.size * (0.55 + depth * 0.9);
+        if (point.spark > 0.5) {
+          context.globalAlpha = alpha * 0.2;
+          context.fillStyle = "rgba(" + red + ", " + Math.min(255, green + 20) + ", " + blue + ", 1)";
+          context.beginPath();
+          context.arc(screenX, screenY, size * 4, 0, Math.PI * 2);
+          context.fill();
+        }
+        context.globalAlpha = alpha;
+        context.fillStyle = "rgb(" + red + ", " + green + ", " + blue + ")";
+        context.beginPath();
+        context.arc(screenX, screenY, Math.max(0.55, size), 0, Math.PI * 2);
+        context.fill();
       }
-      if (reducedMotion) {
-        var complete = overlay.querySelector(".dslg-splash__complete");
-        if (complete) complete.setAttribute("opacity", "1");
-        skipTimer = setTimeout(skip, 1900);
-      } else {
-        writingTimer = setTimeout(startWriting, 180);
-        removeTimer = setTimeout(skip, 5500);
+
+      var rimCount = 360;
+      for (var rimIndex = 0; rimIndex < rimCount; rimIndex += 1) {
+        var rimAngle = (rimIndex / rimCount) * Math.PI * 2;
+        var twinkle = 0.5 + 0.5 * Math.sin(now * 0.0024 + rimIndex * 1.7);
+        var rimRadius = globeRadius + 1.2 + Math.sin(now * 0.0018 + rimIndex * 2.3) * 1.6;
+        var rimX = centerX + Math.cos(rimAngle) * rimRadius;
+        var rimY = centerY + Math.sin(rimAngle) * rimRadius;
+        var rimAlpha = 0.38 + twinkle * 0.62;
+        if (rimIndex % 3 === 0) {
+          context.globalAlpha = rimAlpha * 0.18;
+          context.fillStyle = "rgb(160, 230, 255)";
+          context.beginPath();
+          context.arc(rimX, rimY, 5 + twinkle * 3, 0, Math.PI * 2);
+          context.fill();
+        }
+        context.globalAlpha = rimAlpha;
+        context.fillStyle = twinkle > 0.55 ? "rgb(190, 240, 255)" : "rgb(88, 176, 255)";
+        context.beginPath();
+        context.arc(rimX, rimY, 1.1 + twinkle * 1.35, 0, Math.PI * 2);
+        context.fill();
       }
+
+      var haloCount = 90;
+      for (var haloIndex = 0; haloIndex < haloCount; haloIndex += 1) {
+        var haloAngle = (haloIndex / haloCount) * Math.PI * 2 + Math.sin(now * 0.0002) * 0.1;
+        var haloRadius = globeRadius + 10 + Math.sin(now * 0.0011 + haloIndex) * 3;
+        var haloAlpha = 0.12 + 0.2 * (0.5 + 0.5 * Math.sin(now * 0.0017 + haloIndex * 2.2));
+        context.globalAlpha = haloAlpha;
+        context.fillStyle = "rgb(120, 210, 255)";
+        context.beginPath();
+        context.arc(centerX + Math.cos(haloAngle) * haloRadius, centerY + Math.sin(haloAngle) * haloRadius, 1, 0, Math.PI * 2);
+        context.fill();
+      }
+
+      context.globalAlpha = 1;
+      context.globalCompositeOperation = "source-over";
+    }
+
+    function frame(now) {
+      if (gone || leaving) return;
+      draw(now);
+      frameHandle = requestAnimationFrame(frame);
     }
 
     function cleanup() {
       if (gone) return;
       gone = true;
-      if (readyTimer !== 0) clearTimeout(readyTimer);
-      if (removeTimer !== 0) clearTimeout(removeTimer);
+      if (frameHandle !== 0) cancelAnimationFrame(frameHandle);
       if (skipTimer !== 0) clearTimeout(skipTimer);
-      if (writingTimer !== 0) clearTimeout(writingTimer);
-      if (writingRaf !== 0) cancelAnimationFrame(writingRaf);
-      readyTimer = 0;
-      removeTimer = 0;
+      if (resizeHandler) window.removeEventListener("resize", resizeHandler);
+      frameHandle = 0;
       skipTimer = 0;
-      writingTimer = 0;
-      writingRaf = 0;
+      resizeHandler = null;
       document.removeEventListener("keydown", onKeyDown, true);
       document.documentElement.classList.remove("dslg-splash-lock");
       overlay.remove();
@@ -651,9 +746,9 @@ function createSplash(store) {
       if (gone || leaving) return;
       leaving = true;
       overlay.classList.add("is-leaving");
-      if (removeTimer !== 0) {
-        clearTimeout(removeTimer);
-        removeTimer = 0;
+      if (skipTimer !== 0) {
+        clearTimeout(skipTimer);
+        skipTimer = 0;
       }
       var currentOpacity = 1;
       try {
@@ -676,14 +771,18 @@ function createSplash(store) {
       }
     }
 
+    resize();
+    resizeHandler = resize;
+    window.addEventListener("resize", resizeHandler);
     overlay.addEventListener("click", skip);
     document.addEventListener("keydown", onKeyDown, true);
 
-    if (document.fonts && typeof document.fonts.load === "function") {
-      document.fonts.load('600 1em "DSLG Hello"').then(ready, ready);
-      readyTimer = setTimeout(ready, 400);
+    if (reducedMotion) {
+      draw(1400);
+      skipTimer = setTimeout(skip, 2600);
     } else {
-      ready();
+      frameHandle = requestAnimationFrame(frame);
+      skipTimer = setTimeout(skip, 6800);
     }
 
     active = {
