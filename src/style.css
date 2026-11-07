@@ -875,6 +875,40 @@ html.dslg-splash-lock {
   pointer-events: none;
 }
 
+.dslg-splash__skip {
+  position: absolute;
+  z-index: 3;
+  right: max(24px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  padding: 9px 18px;
+  border: 1px solid rgba(150, 210, 255, 0.38);
+  border-radius: 999px;
+  background:
+    linear-gradient(145deg, rgba(42, 100, 180, 0.5), rgba(8, 28, 58, 0.42));
+  color: rgba(225, 244, 255, 0.9);
+  font: 600 12px/1 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  letter-spacing: 0.06em;
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  backdrop-filter: blur(18px) saturate(170%);
+  box-shadow:
+    0 8px 24px rgba(0, 10, 30, 0.34),
+    inset 0 1px 0 rgba(220, 245, 255, 0.3);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.dslg-splash__skip:hover {
+  border-color: rgba(190, 230, 255, 0.7);
+  background:
+    linear-gradient(145deg, rgba(62, 132, 220, 0.64), rgba(12, 40, 80, 0.5));
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.dslg-splash__skip:active {
+  transform: translateY(0) scale(0.97);
+}
+
 @keyframes dslg-splash-canvas-in {
   to { opacity: 1; }
 }

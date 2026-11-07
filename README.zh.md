@@ -1,6 +1,6 @@
 # 液态玻璃 · DSH Apple Liquid Glass
 
-给 DeepSeek Harness 的输入框、左侧侧边栏可点击项、模型选择器和发送按钮加一层 Apple 风格的液态玻璃材质；输入框上沿与两侧有一条会轻微流动的蓝色光晕，打字时自动停住。开屏是一颗由蓝色光粒子构成的旋转地球：海洋留白，陆地粒子在深蓝与浅蓝之间流动，切换模型时会在模型按钮上方出现一个 1/6 大小的蓝色粒子球；顶部新增一个与输入框同材质的 **灵动岛**。原有四项 **作用范围** 开关保留。强度、作用范围和开屏动效都在 **设置 → 液态玻璃** 里控制，聊天界面不再有悬浮按钮。页面背景保持不变。
+给 DeepSeek Harness 的输入框、左侧侧边栏可点击项、模型选择器和发送按钮加一层 Apple 风格的液态玻璃材质；输入框上沿与两侧有一条会轻微流动的蓝色光晕，打字时自动停住。开屏是一颗由蓝色光粒子构成的旋转地球：海洋留白，陆地粒子在深蓝与浅蓝之间流动；开屏会读取 IP 定位，旋转 4 秒后在该位置闪 3 秒红色光斑，右下角可一键跳过。切换模型时会在模型按钮上方出现一个 1/6 大小的蓝色粒子球；顶部新增一个与输入框同材质的 **灵动岛**。原有四项 **作用范围** 开关保留。强度、作用范围和开屏动效都在 **设置 → 液态玻璃** 里控制，聊天界面不再有悬浮按钮。页面背景保持不变。
 
 ![浅色效果](docs/preview-light.png)
 
@@ -50,7 +50,7 @@ dsh plugin --profile web add 'github:tianyuec11-design/dsh-apple-liquid-glass'
 也可以直接安装固定版本：
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.6.0/dsh-apple-liquid-glass-0.6.0.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.6.1/dsh-apple-liquid-glass-0.6.1.tgz
 ```
 
 > dshmarket 的 **主题** 标签页只列出目录中收录的主题；从 GitHub 安装的这个主题会出现在 **已安装插件** 里，这是正常的。它仍然是一个完整的 bundle 主题插件，可以正常启用/停用。
@@ -83,7 +83,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-会生成 `dsh-apple-liquid-glass-0.6.0.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
+会生成 `dsh-apple-liquid-glass-0.6.1.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
 
 ---
 
@@ -124,7 +124,7 @@ npm pack
 - 全屏旋转地球：外轮廓由一圈蓝色光点勾出，海洋完全留空，陆地由约 3400 颗蓝色光粒子组成。
 - 粒子颜色在深蓝 `#0b3aff` 与浅蓝 `#96ebff` 之间持续流动；球体绕垂直轴缓慢旋转，并带约 23° 倾角。
 - 没有海洋填充或实体球面，只用轮廓光点、陆地粒子和很淡的大气辉光定义地球。
-- 约 6.8 秒；点击任意位置或 `Esc` 可跳过。
+- 开屏先请求 IP 地理定位（短超时、会话缓存；失败时用系统时区估算），然后让地球以 **1–2 圈、4 秒**旋转到目标经度。\n- 旋转结束后在 IP 位置显示一个**闪烁的红色光斑，持续 3 秒**；右下角提供液态玻璃「跳过」按钮，也可点击任意处或按 `Esc` 跳过。
 - `prefers-reduced-motion` 下显示一帧静态地球，约 2.6 秒后淡出。
 - ![开屏地球](docs/preview-splash-earth.png)
 
@@ -174,7 +174,7 @@ npm pack
 - 0% 时移除 `body[data-dslg-glass="on"]` 与全部 `--dslg-*` 变量，所有表面选择器失效，原生样式不受影响。
 - 设置区通过 DSH 的 `settings.section` 槽注册（`slots` + `locale`），不向聊天界面添加任何按钮。
 - 作用范围保存为 `surfaces`（composer / sidebar / model / send），控制器把它们写成 `body[data-dslg-composer|sidebar|model|send="on|off"]`，CSS 的每一组表面选择器再按对应属性收窄；关掉一项时只移除那一组覆盖。
-- 开屏动效改为全屏 canvas 粒子地球：内置低分辨率大陆多边形，Fibonacci 球面采样陆地，正交投影 + 垂直轴旋转/倾角；轮廓和陆地粒子使用 additive 混合，颜色按流动相位在深蓝到浅蓝之间插值，海洋不绘制粒子。
+- 开屏动效改为全屏 canvas 粒子地球：内置低分辨率大陆多边形，Fibonacci 球面采样陆地，正交投影 + 垂直轴旋转/倾角；轮廓和陆地粒子使用 additive 混合，颜色按流动相位在深蓝到浅蓝之间插值，海洋不绘制粒子；IP 定位通过浏览器 geolocation API 获取经纬度，动画状态机控制 4 秒旋转（1–2 圈）和 3 秒红色脉冲光斑。
 - 模型切换粒子球由 2D canvas 实现：96px 画布、Fibonacci 球面分布 + 两条流动光带、按深浅色选择的蓝色/青色 sprite、`source-atop` 渐变染色；定位在模型按钮正上方，`pointer-events: none`，5 秒流动 + 5 秒扩散淡出后移除。
 - 模型切换靠 `MutationObserver` 监听输入框模型触发器上的可访问名称/文本；只有最近 15 秒内用户操作过模型选择器、且模型名确实变化时才播放，避免启动自动加载误触发。
 - 灵动岛是一个 fixed 玻璃胶囊：CSS 尺寸 5cm × 1cm、top 1cm，水平中心由输入卡 `getBoundingClientRect()` 计算；展开到 680px × 150px。点状态通过发送/停止按钮的 `aria-label`（如「停止生成」）和 `aria-busy` 判断；展开时用 `findHeader()` 找到会话标题/模式/标签的容器并暂时隐藏，收起时恢复。
@@ -263,6 +263,7 @@ MIT。见 [LICENSE](LICENSE)。
 开屏字体 **Dancing Script** © The Dancing Script Project Authors，按 SIL Open Font License 1.1 分发；完整许可见 [assets/fonts/OFL.txt](assets/fonts/OFL.txt)。
 
 「Liquid Glass」在这里描述视觉材质；本项目与 Apple Inc. 无隶属或背书关系。
+
 
 
 

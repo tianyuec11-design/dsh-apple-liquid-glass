@@ -581,6 +581,126 @@ function dslgEarthParticles() {
   return points;
 }
 
+function dslgGeoFallback() {
+  var zone = "";
+  try {
+    zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch (error) {
+    zone = "";
+  }
+  var zones = {
+    "Asia/Shanghai": [31.23, 121.47],
+    "Asia/Hong_Kong": [22.32, 114.17],
+    "Asia/Taipei": [25.03, 121.56],
+    "Asia/Tokyo": [35.68, 139.69],
+    "Asia/Seoul": [37.57, 126.98],
+    "Asia/Singapore": [1.35, 103.82],
+    "Asia/Bangkok": [13.76, 100.5],
+    "Asia/Kolkata": [22.57, 88.36],
+    "Asia/Dubai": [25.2, 55.27],
+    "Europe/London": [51.5, -0.12],
+    "Europe/Paris": [48.86, 2.35],
+    "Europe/Berlin": [52.52, 13.4],
+    "Europe/Moscow": [55.76, 37.62],
+    "America/New_York": [40.71, -74.0],
+    "America/Chicago": [41.88, -87.63],
+    "America/Denver": [39.74, -104.99],
+    "America/Los_Angeles": [34.05, -118.24],
+    "America/Sao_Paulo": [-23.55, -46.63],
+    "Australia/Sydney": [-33.87, 151.21],
+    "Australia/Perth": [-31.95, 115.86]
+  };
+  var point = zones[zone] || [20, 0];
+  return { lat: point[0], lon: point[1], fallback: true };
+}
+
+function dslgGeoValid(geo) {
+  return geo && isFinite(geo.lat) && isFinite(geo.lon) && geo.lat >= -90 && geo.lat <= 90 && geo.lon >= -180 && geo.lon <= 180;
+}
+
+function dslgGeoCache() {
+  try {
+    var raw = window.sessionStorage.getItem("dsh-apple-liquid-glass.geo.v1");
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    return dslgGeoValid(parsed) ? parsed : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function dslgGeoFetchJson(url, timeout) {
+  var controller = typeof AbortController === "function" ? new AbortController() : null;
+  var timer = 0;
+  var request = fetch(url, {
+    cache: "no-store",
+    credentials: "omit",
+    signal: controller ? controller.signal : undefined,
+    headers: { Accept: "application/json" }
+  }).then(function (response) {
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    return response.json();
+  });
+  var timeoutPromise = new Promise(function (resolve, reject) {
+    timer = setTimeout(function () {
+      if (controller) controller.abort();
+      reject(new Error("timeout"));
+    }, timeout);
+  });
+  return Promise.race([request, timeoutPromise]).then(function (value) {
+    if (timer !== 0) clearTimeout(timer);
+    return value;
+  }, function (error) {
+    if (timer !== 0) clearTimeout(timer);
+    throw error;
+  });
+}
+
+function dslgFetchGeo() {
+  var cached = dslgGeoCache();
+  if (cached) return Promise.resolve(cached);
+  if (typeof fetch !== "function") return Promise.resolve(dslgGeoFallback());
+  var providers = [
+    {
+      url: "https://ipwho.is/",
+      parse: function (data) {
+        return { lat: Number(data.latitude), lon: Number(data.longitude) };
+      }
+    },
+    {
+      url: "https://ipapi.co/json/",
+      parse: function (data) {
+        return { lat: Number(data.latitude), lon: Number(data.longitude) };
+      }
+    },
+    {
+      url: "https://ipinfo.io/json",
+      parse: function (data) {
+        if (!data.loc) return null;
+        var parts = String(data.loc).split(",");
+        return { lat: Number(parts[0]), lon: Number(parts[1]) };
+      }
+    }
+  ];
+  function attempt(index) {
+    if (index >= providers.length) return Promise.resolve(dslgGeoFallback());
+    var provider = providers[index];
+    return dslgGeoFetchJson(provider.url, 1400).then(function (data) {
+      var geo = provider.parse(data);
+      if (!dslgGeoValid(geo)) throw new Error("invalid geo");
+      try {
+        window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v1", JSON.stringify(geo));
+      } catch (error) {
+        /* Session storage may be unavailable. */
+      }
+      return geo;
+    }).catch(function () {
+      return attempt(index + 1);
+    });
+  }
+  return attempt(0);
+}
+
 function createSplash(store) {
   var active = null;
   var reducedMotion = false;
@@ -600,10 +720,17 @@ function createSplash(store) {
     overlay.innerHTML = [
       '<div class="dslg-splash__glow" aria-hidden="true"></div>',
       '<canvas class="dslg-splash__canvas" aria-label="旋转的地球"></canvas>',
-      '<div class="dslg-splash__hint"></div>',
+      '<button class="dslg-splash__skip" type="button"></button>',
     ].join("\n");
-    var hint = overlay.querySelector(".dslg-splash__hint");
-    hint.textContent = t("splash.skip");
+    var skipButton = overlay.querySelector(".dslg-splash__skip");
+    var language = "";
+    try {
+      language = (document.documentElement.lang || navigator.language || "zh").toLowerCase();
+    } catch (error) {
+      language = "zh";
+    }
+    skipButton.textContent = language.indexOf("zh") === 0 ? "跳过" : "Skip";
+    skipButton.setAttribute("aria-label", t("splash.skip"));
     document.body.appendChild(overlay);
     document.documentElement.classList.add("dslg-splash-lock");
 
@@ -616,6 +743,52 @@ function createSplash(store) {
     var resizeHandler = null;
     var skipTimer = 0;
     var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var phase = "locating";
+    var fixedAngle = 0.32;
+    var targetLat = 20;
+    var targetLon = 0;
+    var spinStart = 0;
+    var spinFrom = fixedAngle;
+    var spinTo = fixedAngle;
+    var spinDuration = 4000;
+    var spotStart = 0;
+    var geoDone = false;
+    var fallback = dslgGeoFallback();
+    targetLat = fallback.lat;
+    targetLon = fallback.lon;
+
+    function beginSpin(geo) {
+      if (gone || leaving || geoDone) return;
+      geoDone = true;
+      targetLat = geo.lat;
+      targetLon = geo.lon;
+      var latitude = targetLat * Math.PI / 180;
+      var longitude = targetLon * Math.PI / 180;
+      var finalAngle = longitude - Math.PI / 2;
+      var fullTurn = Math.PI * 2;
+      var delta = ((finalAngle - fixedAngle) % fullTurn + fullTurn) % fullTurn;
+      spinFrom = fixedAngle;
+      spinTo = fixedAngle + fullTurn + delta;
+      if (reducedMotion) {
+        phase = "spot";
+        spotStart = performance.now();
+        draw(spotStart);
+        skipTimer = setTimeout(skip, 3000);
+        return;
+      }
+      spinStart = performance.now();
+      phase = "spin";
+    }
+
+    function targetPoint() {
+      var latitude = targetLat * Math.PI / 180;
+      var longitude = targetLon * Math.PI / 180;
+      return {
+        x: Math.cos(latitude) * Math.cos(longitude),
+        y: Math.sin(latitude),
+        z: Math.cos(latitude) * Math.sin(longitude)
+      };
+    }
 
     function resize() {
       var width = window.innerWidth;
@@ -646,7 +819,19 @@ function createSplash(store) {
       context.arc(centerX, centerY, globeRadius * 1.3, 0, Math.PI * 2);
       context.fill();
 
-      var angle = now * 0.00032;
+      var angle = fixedAngle;
+      if (phase === "spin") {
+        var spinProgress = Math.max(0, Math.min(1, (now - spinStart) / spinDuration));
+        var spinEased = spinProgress * spinProgress * (3 - 2 * spinProgress);
+        angle = spinFrom + (spinTo - spinFrom) * spinEased;
+        if (spinProgress >= 1) {
+          phase = "spot";
+          spotStart = now;
+          angle = spinTo;
+        }
+      } else if (phase === "spot") {
+        angle = spinTo;
+      }
       var tilt = -0.19;
       var cosAngle = Math.cos(angle);
       var sinAngle = Math.sin(angle);
@@ -717,6 +902,43 @@ function createSplash(store) {
         context.fill();
       }
 
+      if (phase === "spot") {
+        var point = targetPoint();
+        var spotX = point.x * cosAngle + point.z * sinAngle;
+        var spotZ = -point.x * sinAngle + point.z * cosAngle;
+        var spotTiltedX = spotX * cosTilt - point.y * sinTilt;
+        var spotTiltedY = spotX * sinTilt + point.y * cosTilt;
+        var elapsed = Math.max(0, now - spotStart);
+        if (spotZ > 0.02) {
+          var screenSpotX = centerX + spotTiltedX * globeRadius;
+          var screenSpotY = centerY - spotTiltedY * globeRadius;
+          var pulse = 0.45 + 0.55 * Math.pow(0.5 + 0.5 * Math.sin(now * 0.013), 0.7);
+          var halo = context.createRadialGradient(screenSpotX, screenSpotY, 0, screenSpotX, screenSpotY, 34);
+          halo.addColorStop(0, "rgba(255, 196, 184, " + (0.8 * pulse) + ")");
+          halo.addColorStop(0.22, "rgba(255, 70, 58, " + (0.65 * pulse) + ")");
+          halo.addColorStop(0.58, "rgba(255, 38, 38, " + (0.22 * pulse) + ")");
+          halo.addColorStop(1, "rgba(255, 0, 0, 0)");
+          context.globalAlpha = 1;
+          context.fillStyle = halo;
+          context.beginPath();
+          context.arc(screenSpotX, screenSpotY, 34, 0, Math.PI * 2);
+          context.fill();
+          context.globalAlpha = 0.9;
+          context.fillStyle = "rgb(255, 88, 74)";
+          context.beginPath();
+          context.arc(screenSpotX, screenSpotY, 2.4 + pulse * 2.6, 0, Math.PI * 2);
+          context.fill();
+          var ringProgress = (elapsed % 1100) / 1100;
+          context.globalAlpha = (1 - ringProgress) * 0.5 * pulse;
+          context.strokeStyle = "rgb(255, 96, 82)";
+          context.lineWidth = 1.4;
+          context.beginPath();
+          context.arc(screenSpotX, screenSpotY, 7 + ringProgress * 27, 0, Math.PI * 2);
+          context.stroke();
+        }
+        if (elapsed >= 3000) skip();
+      }
+
       context.globalAlpha = 1;
       context.globalCompositeOperation = "source-over";
     }
@@ -774,16 +996,25 @@ function createSplash(store) {
     resize();
     resizeHandler = resize;
     window.addEventListener("resize", resizeHandler);
+    skipButton.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      skip();
+    });
     overlay.addEventListener("click", skip);
     document.addEventListener("keydown", onKeyDown, true);
 
     if (reducedMotion) {
-      draw(1400);
-      skipTimer = setTimeout(skip, 2600);
+      draw(performance.now());
     } else {
       frameHandle = requestAnimationFrame(frame);
-      skipTimer = setTimeout(skip, 6800);
     }
+    skipTimer = setTimeout(skip, 16000);
+    dslgFetchGeo().then(function (geo) {
+      beginSpin(geo);
+    }).catch(function () {
+      beginSpin(dslgGeoFallback());
+    });
 
     active = {
       overlay: overlay,
