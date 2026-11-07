@@ -714,34 +714,53 @@ function dslgFetchAmapGeo(key) {
   var ipUrl = "https://restapi.amap.com/v3/ip?key=" + encodeURIComponent(key);
   return dslgGeoFetchJson(ipUrl, 1800).then(function (ip) {
     if (!ip || String(ip.status) !== "1") throw new Error("amap ip failed");
+    var lon = null;
+    var lat = null;
     var rectangle = String(ip.rectangle || "");
     var corners = rectangle.split(";");
-    if (corners.length !== 2) throw new Error("amap rectangle missing");
-    var first = corners[0].split(",").map(Number);
-    var second = corners[1].split(",").map(Number);
-    if (first.length !== 2 || second.length !== 2 || !isFinite(first[0]) || !isFinite(first[1]) || !isFinite(second[0]) || !isFinite(second[1])) {
-      throw new Error("amap rectangle invalid");
+    if (corners.length === 2) {
+      var first = corners[0].split(",").map(Number);
+      var second = corners[1].split(",").map(Number);
+      if (first.length === 2 && second.length === 2 && isFinite(first[0]) && isFinite(first[1]) && isFinite(second[0]) && isFinite(second[1])) {
+        lon = (first[0] + second[0]) / 2;
+        lat = (first[1] + second[1]) / 2;
+      }
     }
-    var lon = (first[0] + second[0]) / 2;
-    var lat = (first[1] + second[1]) / 2;
+    var cityName = String(ip.city || "").trim();
+    if (!cityName || cityName === "[]") cityName = String(ip.province || "").trim();
     var label = dslgAmapLabel([ip.city, ip.province]);
-    var geoUrl = "https://restapi.amap.com/v3/geocode/regeo?key=" + encodeURIComponent(key) +
-      "&location=" + lon.toFixed(6) + "," + lat.toFixed(6);
-    return dslgGeoFetchJson(geoUrl, 1800).catch(function () {
-      return null;
-    }).then(function (regeo) {
-      if (regeo && String(regeo.status) === "1" && regeo.regeocode) {
-        var component = regeo.regeocode.addressComponent || {};
-        var detailed = dslgAmapLabel([component.district, component.city, component.province]);
-        if (detailed) label = detailed;
+    var geocodePromise = cityName
+      ? dslgGeoFetchJson("https://restapi.amap.com/v3/geocode/geo?key=" + encodeURIComponent(key) + "&address=" + encodeURIComponent(cityName), 1800).catch(function () { return null; })
+      : Promise.resolve(null);
+    return geocodePromise.then(function (geocode) {
+      if (geocode && String(geocode.status) === "1" && geocode.geocodes && geocode.geocodes[0]) {
+        var entry = geocode.geocodes[0];
+        var location = String(entry.location || "").split(",").map(Number);
+        if (location.length === 2 && isFinite(location[0]) && isFinite(location[1])) {
+          lon = location[0];
+          lat = location[1];
+          label = dslgAmapLabel([entry.formatted_address, cityName]) || label;
+        }
       }
-      var result = { lat: lat, lon: lon, label: label, source: "amap" };
-      try {
-        window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v1", JSON.stringify(result));
-      } catch (error) {
-        /* Storage may be unavailable. */
-      }
-      return result;
+      if (lon === null || lat === null) throw new Error("amap coordinates missing");
+      var geoUrl = "https://restapi.amap.com/v3/geocode/regeo?key=" + encodeURIComponent(key) +
+        "&location=" + lon.toFixed(6) + "," + lat.toFixed(6);
+      return dslgGeoFetchJson(geoUrl, 1800).catch(function () {
+        return null;
+      }).then(function (regeo) {
+        if (regeo && String(regeo.status) === "1" && regeo.regeocode) {
+          var component = regeo.regeocode.addressComponent || {};
+          var detailed = dslgAmapLabel([component.district, component.city, component.province]);
+          if (detailed) label = detailed;
+        }
+        var result = { lat: lat, lon: lon, label: label, source: "amap" };
+        try {
+          window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v1", JSON.stringify(result));
+        } catch (error) {
+          /* Storage may be unavailable. */
+        }
+        return result;
+      });
     });
   });
 }
