@@ -50,7 +50,7 @@ Restart `dsh web` afterwards. `dsh plugin` needs pnpm on `PATH`; the Desktop app
 A pinned release is also available as:
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.6.1/dsh-apple-liquid-glass-0.6.1.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.6.2/dsh-apple-liquid-glass-0.6.2.tgz
 ```
 
 > dshmarket's **Themes** tab only lists themes in its catalog. A GitHub-installed theme appears under **Installed plugins**; it is still a complete bundle theme and can be enabled or disabled normally.
@@ -79,7 +79,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-Then install `dsh-apple-liquid-glass-0.6.1.tgz` through the plugin manager.
+Then install `dsh-apple-liquid-glass-0.6.2.tgz` through the plugin manager.
 
 ---
 
@@ -117,10 +117,10 @@ All four are on by default. Turning one off restores that surface to native imme
 
 ### Opening animation
 
-- A full-screen rotating particle Earth: the outline is a ring of blue light points, the oceans are completely blank, and the land is made of about 3,400 blue light particles.
+- A full-screen rotating particle Earth: the outline is a ring of blue light points, the oceans are completely blank, and the land is made of about 3,400 blue light particles. The continent mask is derived from Amap map tiles, not hand-drawn polygons.
 - Particle colours flow continuously between deep blue `#0b3aff` and light blue `#96ebff`; the globe rotates around its vertical axis with a ~23° tilt.
 - There is no ocean fill or solid sphere — only the rim points, land particles, and a faint atmospheric glow define the Earth.
-- The opening resolves the visitor IP first (short timeouts, session cache, timezone fallback), then spins the globe **1–2 turns over 4 seconds** to the target longitude.\n- A **blinking red spot appears at the IP location for 3 seconds**; a liquid-glass Skip button sits at the bottom-right, and clicking anywhere / `Esc` also skips.
+- The opening resolves the visitor IP first (short timeouts, session cache, timezone fallback), then spins the globe **1–2 turns over 4 seconds** to the target longitude.\n- A **blinking red spot appears at the IP location for 3 seconds**; a liquid-glass Skip button sits at the bottom-right, and clicking anywhere / `Esc` also skips.\n- Paste an Amap **Web service key** in the island panel under Amap location to use Amap IP + reverse geocoding and show the city; without it the opening falls back to IP services / the system timezone.
 - With `prefers-reduced-motion`, one static frame is shown for about 2.6 seconds.
 - ![Particle Earth opening](docs/preview-splash-earth.png)
 
@@ -244,6 +244,8 @@ MIT. See [LICENSE](LICENSE).
 The opening font **Dancing Script** © The Dancing Script Project Authors, distributed under the SIL Open Font License 1.1; see [assets/fonts/OFL.txt](assets/fonts/OFL.txt).
 
 "Liquid Glass" describes the visual material. This project is not affiliated with or endorsed by Apple Inc.
+
+
 
 
 
