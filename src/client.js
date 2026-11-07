@@ -851,7 +851,7 @@ function dslgCreateGlobeRenderer(canvas) {
     "  vec3 p = uRot * aPos;",
     "  vNormal = uRot * aNormal;",
     "  vUv = aUv;",
-    "  gl_Position = vec4(p.x * uScaleX, p.y * uScaleY, p.z * 0.5 + 0.5, 1.0);",
+    "  gl_Position = vec4(p.x * uScaleX, p.y * uScaleY, 0.5 - p.z * 0.5, 1.0);",
     "}"
   ].join("\n");
   var fragmentSource = [
