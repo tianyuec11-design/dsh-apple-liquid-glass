@@ -654,7 +654,7 @@ function dslgGeoValid(geo) {
 
 function dslgGeoCache() {
   try {
-    var raw = window.sessionStorage.getItem("dsh-apple-liquid-glass.geo.v1");
+    var raw = window.sessionStorage.getItem("dsh-apple-liquid-glass.geo.v2");
     if (!raw) return null;
     var parsed = JSON.parse(raw);
     return dslgGeoValid(parsed) ? parsed : null;
@@ -755,13 +755,23 @@ function dslgFetchAmapGeo(key) {
         }
         var result = { lat: lat, lon: lon, label: label, source: "amap" };
         try {
-          window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v1", JSON.stringify(result));
+          window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v2", JSON.stringify(result));
         } catch (error) {
           /* Storage may be unavailable. */
         }
         return result;
       });
     });
+  });
+}
+
+function dslgAmapReverseLabel(key, latitude, longitude) {
+  var url = "https://restapi.amap.com/v3/geocode/regeo?key=" + encodeURIComponent(key) +
+    "&location=" + longitude.toFixed(6) + "," + latitude.toFixed(6);
+  return dslgGeoFetchJson(url, 1600).then(function (data) {
+    if (!data || String(data.status) !== "1" || !data.regeocode) return "";
+    var component = data.regeocode.addressComponent || {};
+    return dslgAmapLabel([component.district, component.city, component.province]);
   });
 }
 
@@ -810,7 +820,7 @@ function dslgFetchGeo() {
       var geo = provider.parse(data);
       if (!dslgGeoValid(geo)) throw new Error("invalid geo");
       try {
-        window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v1", JSON.stringify(geo));
+        window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v2", JSON.stringify(geo));
       } catch (error) {
         /* Session storage may be unavailable. */
       }
@@ -819,13 +829,23 @@ function dslgFetchGeo() {
       return attempt(index + 1);
     });
   }
-  var amapKey = dslgAmapKey();
-  if (amapKey) {
-    return dslgFetchAmapGeo(amapKey).catch(function () {
-      return attempt(0);
+  return attempt(0).then(function (geo) {
+    var amapKey = dslgAmapKey();
+    if (!amapKey) return geo;
+    return dslgAmapReverseLabel(amapKey, geo.lat, geo.lon).then(function (label) {
+      if (label) {
+        geo.label = label;
+        try {
+          window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v2", JSON.stringify(geo));
+        } catch (error) {
+          /* Session storage may be unavailable. */
+        }
+      }
+      return geo;
+    }).catch(function () {
+      return geo;
     });
-  }
-  return attempt(0);
+  });
 }
 
 function dslgCreateGlobeRenderer(canvas) {
@@ -1483,8 +1503,8 @@ function createDynamicIsland(store, splash, ctx) {
     '  </div>',
     '  <div class="dslg-island-panel__section">',
     '    <div class="dslg-island-panel__caption">高德定位</div>',
-    '    <input class="dslg-island-panel__amap" type="text" autocomplete="off" spellcheck="false" placeholder="高德 Web 服务 Key（可选）">',
-    '    <small class="dslg-island-panel__note">用于 IP 定位与城市反查，仅保存在本机。未填写时使用 IP 服务/系统时区估算。</small>',
+    '    <input class="dslg-island-panel__amap" type="text" autocomplete="off" spellcheck="false" placeholder="高德 Web 服务 Key（可选，仅反查城市名）">',
+    '    <small class="dslg-island-panel__note">定位始终使用 IP 服务；这里填 Key 只用于把 IP 坐标反查成城市名，仅保存在本机。</small>',
     '  </div>',
     '</div>',
   ].join("");
@@ -2465,7 +2485,7 @@ function createDynamicIsland(store, splash, ctx) {
       var value = panelAmap.value.trim();
       if (value) window.localStorage.setItem("dsh-apple-liquid-glass.amapKey", value);
       else window.localStorage.removeItem("dsh-apple-liquid-glass.amapKey");
-      window.sessionStorage.removeItem("dsh-apple-liquid-glass.geo.v1");
+      window.sessionStorage.removeItem("dsh-apple-liquid-glass.geo.v2");
     } catch (error) {
       /* Local storage may be unavailable. */
     }
@@ -3176,3 +3196,4 @@ function apply(ctx) {
 
 exports.apply = apply;
 exports.inject = ["slots", "locale"];
+
