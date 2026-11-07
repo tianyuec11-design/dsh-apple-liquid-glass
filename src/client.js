@@ -654,7 +654,7 @@ function dslgGeoValid(geo) {
 
 function dslgGeoCache() {
   try {
-    var raw = window.sessionStorage.getItem("dsh-apple-liquid-glass.geo.v2");
+    var raw = window.sessionStorage.getItem("dsh-apple-liquid-glass.geo.v3");
     if (!raw) return null;
     var parsed = JSON.parse(raw);
     return dslgGeoValid(parsed) ? parsed : null;
@@ -755,7 +755,7 @@ function dslgFetchAmapGeo(key) {
         }
         var result = { lat: lat, lon: lon, label: label, source: "amap" };
         try {
-          window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v2", JSON.stringify(result));
+          window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v3", JSON.stringify(result));
         } catch (error) {
           /* Storage may be unavailable. */
         }
@@ -786,7 +786,8 @@ function dslgFetchGeo() {
         return {
           lat: Number(data.latitude),
           lon: Number(data.longitude),
-          label: dslgAmapLabel([data.city, data.region, data.country])
+          label: dslgAmapLabel([data.city, data.region, data.country]),
+          ip: String(data.ip || "")
         };
       }
     },
@@ -796,7 +797,8 @@ function dslgFetchGeo() {
         return {
           lat: Number(data.latitude),
           lon: Number(data.longitude),
-          label: dslgAmapLabel([data.city, data.region, data.country_name])
+          label: dslgAmapLabel([data.city, data.region, data.country_name]),
+          ip: String(data.ip || "")
         };
       }
     },
@@ -808,7 +810,8 @@ function dslgFetchGeo() {
         return {
           lat: Number(parts[0]),
           lon: Number(parts[1]),
-          label: dslgAmapLabel([data.city, data.region, data.country])
+          label: dslgAmapLabel([data.city, data.region, data.country]),
+          ip: String(data.ip || "")
         };
       }
     }
@@ -820,7 +823,7 @@ function dslgFetchGeo() {
       var geo = provider.parse(data);
       if (!dslgGeoValid(geo)) throw new Error("invalid geo");
       try {
-        window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v2", JSON.stringify(geo));
+        window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v3", JSON.stringify(geo));
       } catch (error) {
         /* Session storage may be unavailable. */
       }
@@ -836,7 +839,7 @@ function dslgFetchGeo() {
       if (label) {
         geo.label = label;
         try {
-          window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v2", JSON.stringify(geo));
+          window.sessionStorage.setItem("dsh-apple-liquid-glass.geo.v3", JSON.stringify(geo));
         } catch (error) {
           /* Session storage may be unavailable. */
         }
@@ -1101,6 +1104,7 @@ function createSplash(store) {
     var targetLat = 20;
     var targetLon = 0;
     var targetLabel = "";
+    var targetIp = "";
     var spinStart = 0;
     var spinFrom = fixedAngle;
     var spinTo = fixedAngle;
@@ -1112,12 +1116,18 @@ function createSplash(store) {
     targetLat = fallback.lat;
     targetLon = fallback.lon;
 
+    function locationText() {
+      if (!targetLabel && !targetIp) return "";
+      return (targetLabel || "未知位置") + " · " + (targetIp || "时区估算");
+    }
+
     function beginSpin(geo) {
       if (gone || leaving || geoDone) return;
       geoDone = true;
       targetLat = geo.lat;
       targetLon = geo.lon;
       targetLabel = geo.label || "";
+      targetIp = geo.ip || "";
       var latitude = targetLat * Math.PI / 180;
       var longitude = targetLon * Math.PI / 180;
       var finalAngle = -longitude;
@@ -1128,8 +1138,8 @@ function createSplash(store) {
       if (reducedMotion) {
         phase = "spot";
         spotStart = performance.now();
-        if (targetLabel) {
-          placeEl.textContent = targetLabel;
+        if (targetLabel || targetIp) {
+          placeEl.textContent = locationText();
           placeEl.classList.add("is-visible");
           placeShown = true;
         }
@@ -1270,8 +1280,8 @@ function createSplash(store) {
       }
 
       if (phase === "spot") {
-        if (!placeShown && targetLabel) {
-          placeEl.textContent = targetLabel;
+        if (!placeShown && (targetLabel || targetIp)) {
+          placeEl.textContent = locationText();
           placeEl.classList.add("is-visible");
           placeShown = true;
         }
@@ -2485,7 +2495,7 @@ function createDynamicIsland(store, splash, ctx) {
       var value = panelAmap.value.trim();
       if (value) window.localStorage.setItem("dsh-apple-liquid-glass.amapKey", value);
       else window.localStorage.removeItem("dsh-apple-liquid-glass.amapKey");
-      window.sessionStorage.removeItem("dsh-apple-liquid-glass.geo.v2");
+      window.sessionStorage.removeItem("dsh-apple-liquid-glass.geo.v3");
     } catch (error) {
       /* Local storage may be unavailable. */
     }
@@ -3196,4 +3206,5 @@ function apply(ctx) {
 
 exports.apply = apply;
 exports.inject = ["slots", "locale"];
+
 

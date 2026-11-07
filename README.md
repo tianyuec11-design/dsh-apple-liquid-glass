@@ -50,7 +50,7 @@ Restart `dsh web` afterwards. `dsh plugin` needs pnpm on `PATH`; the Desktop app
 A pinned release is also available as:
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.6.7/dsh-apple-liquid-glass-0.6.7.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.6.8/dsh-apple-liquid-glass-0.6.8.tgz
 ```
 
 > dshmarket's **Themes** tab only lists themes in its catalog. A GitHub-installed theme appears under **Installed plugins**; it is still a complete bundle theme and can be enabled or disabled normally.
@@ -79,7 +79,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-Then install `dsh-apple-liquid-glass-0.6.7.tgz` through the plugin manager.
+Then install `dsh-apple-liquid-glass-0.6.8.tgz` through the plugin manager.
 
 ---
 
@@ -244,6 +244,7 @@ MIT. See [LICENSE](LICENSE).
 The opening font **Dancing Script** © The Dancing Script Project Authors, distributed under the SIL Open Font License 1.1; see [assets/fonts/OFL.txt](assets/fonts/OFL.txt).
 
 "Liquid Glass" describes the visual material. This project is not affiliated with or endorsed by Apple Inc.
+
 
 
 
