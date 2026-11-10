@@ -1539,6 +1539,15 @@ function createDynamicIsland(store, splash, ctx) {
     '    <button type="button" role="switch" class="dslg-island-panel__splash-switch" aria-checked="true"><span></span></button>',
     '  </div>',
     '  <div class="dslg-island-panel__section">',
+    '    <div class="dslg-island-panel__caption">打赏动效预览</div>',
+    '    <div class="dslg-tip-preview">',
+    '      <button type="button" data-tip-preview="heart">❤ 爱心</button>',
+    '      <button type="button" data-tip-preview="car">🏎 跑车</button>',
+    '      <button type="button" data-tip-preview="rocket">🚀 火箭</button>',
+    '    </div>',
+    '    <small class="dslg-island-panel__note">不充值也能预览，用来检查动效。</small>',
+    '  </div>',
+    '  <div class="dslg-island-panel__section">',
     '    <div class="dslg-island-panel__caption">高德定位</div>',
     '    <input class="dslg-island-panel__amap" type="text" autocomplete="off" spellcheck="false" placeholder="高德 Web 服务 Key（可选，仅反查城市名）">',
     '    <small class="dslg-island-panel__note">定位始终使用 IP 服务；这里填 Key 只用于把 IP 坐标反查成城市名，仅保存在本机。</small>',
@@ -1586,6 +1595,7 @@ function createDynamicIsland(store, splash, ctx) {
   var panelSplash = panel.querySelector(".dslg-island-panel__splash-switch");
   var panelClose = panel.querySelector(".dslg-island-panel__close");
   var panelAmap = panel.querySelector(".dslg-island-panel__amap");
+  var panelTipPreviews = Array.prototype.slice.call(panel.querySelectorAll("[data-tip-preview]"));
   var projectsButton = host.querySelector(".dslg-island__projects");
   var tipButton = host.querySelector(".dslg-island__tip");
   var projectBack = projectModal.querySelector(".dslg-carousel__back");
@@ -2764,6 +2774,16 @@ function createDynamicIsland(store, splash, ctx) {
   panelPresets.forEach(function (button) { button.addEventListener("click", onPresetClick); });
   panelSurfaces.forEach(function (button) { button.addEventListener("click", onSurfaceClick); });
   panelSplash.addEventListener("click", onSplashClick);
+  panelTipPreviews.forEach(function (button) {
+    button.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      var kind = button.getAttribute("data-tip-preview");
+      var previewAmount = kind === "heart" ? 5 : kind === "car" ? 15 : 30;
+      closePanel();
+      playTipEffect(previewAmount);
+    });
+  });
   try {
     panelAmap.value = dslgAmapKey();
   } catch (error) {
