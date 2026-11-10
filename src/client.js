@@ -1485,6 +1485,7 @@ function createDynamicIsland(store, splash, ctx) {
     '      <span class="dslg-island__title">DSH</span>',
     '      <span class="dslg-island__mode">标准模式</span>',
     '    </div>',
+    '    <button class="dslg-island__tip" type="button" aria-label="打赏">♥ 打赏</button>',
     '    <button class="dslg-island__projects" type="button">工作区</button>',
     '    <button class="dslg-island__gear" type="button" aria-label="液态玻璃设置">',
     '      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Zm8.1 4.9v-2.2l-2.1-.8a7.2 7.2 0 0 0-.7-1.7l1-2-1.6-1.6-2 1a7.2 7.2 0 0 0-1.7-.7L12.2 3H10l-.8 2.1a7.2 7.2 0 0 0-1.7.7l-2-1-1.6 1.6 1 2a7.2 7.2 0 0 0-.7 1.7l-2.1.8v2.2l2.1.8c.2.6.4 1.2.7 1.7l-1 2 1.6 1.6 2-1c.5.3 1.1.5 1.7.7l.8 2.1h2.2l.8-2.1c.6-.2 1.2-.4 1.7-.7l2 1 1.6-1.6-1-2c.3-.5.5-1.1.7-1.7l2.1-.8Z"/></svg>',
@@ -1586,6 +1587,7 @@ function createDynamicIsland(store, splash, ctx) {
   var panelClose = panel.querySelector(".dslg-island-panel__close");
   var panelAmap = panel.querySelector(".dslg-island-panel__amap");
   var projectsButton = host.querySelector(".dslg-island__projects");
+  var tipButton = host.querySelector(".dslg-island__tip");
   var projectBack = projectModal.querySelector(".dslg-carousel__back");
   var projectClose = projectModal.querySelector(".dslg-carousel__close");
   var projectTitle = projectModal.querySelector(".dslg-carousel__title");
@@ -1604,6 +1606,10 @@ function createDynamicIsland(store, splash, ctx) {
   var projectLoading = false;
   var projectLoadTimer = 0;
   var liveBalance = { text: "—", at: 0, busy: false };
+  var tipTimer = 0;
+  var tipBase = null;
+  var tipStartedAt = 0;
+  var tipFx = null;
   var projectOpen = false;
   var projectView = "workspaces";
   var currentWorkspace = "";
@@ -2390,25 +2396,178 @@ function createDynamicIsland(store, splash, ctx) {
     toggleProjects(!projectOpen);
   }
 
-  function refreshBalance() {
-    if (liveBalance.busy || Date.now() - liveBalance.at < 12000) return;
-    if (typeof fetch !== "function") return;
+  function balanceNumber() {
+    var match = String(liveBalance.text || "").replace(/,/g, "").match(/\d+(?:\.\d+)?/);
+    if (!match) return null;
+    var value = Number(match[0]);
+    return isFinite(value) ? value : null;
+  }
+
+  function refreshBalance(force) {
+    if (liveBalance.busy) return Promise.resolve(false);
+    if (!force && Date.now() - liveBalance.at < 12000) return Promise.resolve(false);
+    if (typeof fetch !== "function") return Promise.resolve(false);
     liveBalance.busy = true;
     liveBalance.at = Date.now();
-    fetch("/dsh-apple-liquid-glass/balance", { cache: "no-store" })
+    return fetch("/dsh-apple-liquid-glass/balance", { cache: "no-store" })
       .then(function (response) { return response.ok ? response.json() : null; })
       .then(function (data) {
         if (data && data.ok) {
           var symbol = data.currency === "USD" ? "$" : data.currency === "CNY" ? "¥" : "";
           liveBalance.text = symbol + data.total;
+          return true;
         }
+        return false;
       })
       .catch(function () {
-        /* The island falls back to DOM values or —. */
+        return false;
       })
-      .then(function () {
+      .then(function (ok) {
         liveBalance.busy = false;
+        return ok;
       });
+  }
+
+  function playTipEffect(amount) {
+    if (tipFx !== null) tipFx.remove();
+    var reduceMotion = false;
+    try {
+      reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    } catch (error) {
+      reduceMotion = false;
+    }
+    var kind = amount <= 10 ? "heart" : amount <= 20 ? "car" : "rocket";
+    var language = "";
+    try {
+      language = (document.documentElement.lang || navigator.language || "zh").toLowerCase();
+    } catch (error) {
+      language = "zh";
+    }
+    var chinese = language.indexOf("zh") === 0;
+    var symbol = String(liveBalance.text || "").trim().charAt(0) === "$" ? "$" : "¥";
+    var overlay = document.createElement("div");
+    overlay.className = "dslg-tip-fx is-" + kind;
+    overlay.setAttribute("role", "status");
+    overlay.setAttribute("aria-live", "polite");
+    overlay.innerHTML = [
+      '<div class="dslg-tip-fx__wash"></div>',
+      '<div class="dslg-tip-fx__stage">',
+      '  <div class="dslg-tip-fx__hero">' + (kind === "heart" ? "❤" : kind === "car" ? "🏎️" : "🚀") + '</div>',
+      '  <div class="dslg-tip-fx__particles"></div>',
+      '</div>',
+      '<div class="dslg-tip-fx__badge"><span>' + (chinese ? "打赏成功" : "Support received") + '</span><strong>' + symbol + amount.toFixed(2) + '</strong></div>',
+    ].join("");
+    var particles = overlay.querySelector(".dslg-tip-fx__particles");
+    var count = kind === "heart" ? 18 : kind === "car" ? 16 : 22;
+    for (var index = 0; index < count; index += 1) {
+      var particle = document.createElement("span");
+      particle.className = "dslg-tip-fx__particle";
+      particle.textContent = kind === "heart" ? "♥" : kind === "car" ? "—" : "✦";
+      particle.style.left = (8 + Math.random() * 84) + "%";
+      particle.style.top = (12 + Math.random() * 74) + "%";
+      particle.style.fontSize = (10 + Math.random() * (kind === "heart" ? 26 : 14)) + "px";
+      particle.style.animationDelay = (Math.random() * 1.1).toFixed(2) + "s";
+      particle.style.setProperty("--tip-drift", (Math.random() * 80 - 40).toFixed(1) + "px");
+      particles.appendChild(particle);
+    }
+    document.body.appendChild(overlay);
+    tipFx = overlay;
+    var duration = reduceMotion ? 2600 : 4600;
+    if (reduceMotion) overlay.classList.add("is-reduced");
+    setTimeout(function () {
+      overlay.classList.add("is-leaving");
+      setTimeout(function () {
+        overlay.remove();
+        if (tipFx === overlay) tipFx = null;
+      }, 360);
+    }, duration);
+  }
+
+  function stopTipWatch() {
+    if (tipTimer !== 0) clearInterval(tipTimer);
+    tipTimer = 0;
+    tipBase = null;
+    tipStartedAt = 0;
+  }
+
+  function startTipWatch() {
+    stopTipWatch();
+    tipBase = balanceNumber();
+    tipStartedAt = Date.now();
+    refreshBalance(true);
+    tipTimer = setInterval(function () {
+      if (Date.now() - tipStartedAt > 15 * 60 * 1000) {
+        stopTipWatch();
+        return;
+      }
+      refreshBalance(true).then(function () {
+        var next = balanceNumber();
+        if (next === null) return;
+        if (tipBase === null) {
+          tipBase = next;
+          return;
+        }
+        if (next > tipBase + 0.004) {
+          var amount = next - tipBase;
+          stopTipWatch();
+          playTipEffect(amount);
+        }
+      });
+    }, 5000);
+  }
+
+  function findRechargeControl() {
+    var candidates = Array.prototype.slice.call(document.querySelectorAll('button, a, [role="menuitem"], [role="button"]'));
+    for (var index = 0; index < candidates.length; index += 1) {
+      var node = candidates[index];
+      if (insideHost(node) || !visible(node)) continue;
+      var label = (node.getAttribute("aria-label") || "") + " " + (node.getAttribute("title") || "") + " " + (node.textContent || "");
+      if (/充值|充值中心|余额充值|top\s*up|recharge|add\s*credits/i.test(label)) return node;
+    }
+    return null;
+  }
+
+  function openTopUpUrl() {
+    var anchor = document.createElement("a");
+    anchor.href = "https://platform.deepseek.com/top_up";
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
+    anchor.click();
+    setTimeout(function () { anchor.remove(); }, 1000);
+  }
+
+  function openRecharge() {
+    var control = findRechargeControl();
+    if (control) {
+      control.click();
+      return;
+    }
+    var account = Array.prototype.slice.call(document.querySelectorAll("button"))
+      .filter(function (node) {
+        return !insideHost(node) && visible(node) && /账号|账户|account|avatar|profile/i.test((node.getAttribute("aria-label") || "") + " " + (node.getAttribute("title") || ""));
+      })[0];
+    if (account) {
+      account.click();
+      setTimeout(function () {
+        var next = findRechargeControl();
+        if (next) next.click();
+        else openTopUpUrl();
+      }, 420);
+      return;
+    }
+    openTopUpUrl();
+  }
+
+  function onTipClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen(false);
+    closePanel();
+    closeProjects();
+    startTipWatch();
+    openRecharge();
   }
 
   function onGearClick(event) {
@@ -2503,6 +2662,7 @@ function createDynamicIsland(store, splash, ctx) {
   host.addEventListener("click", onHostClick);
   host.addEventListener("keydown", onKeyDown);
   projectsButton.addEventListener("click", onProjectsClick);
+  tipButton.addEventListener("click", onTipClick);
   gear.addEventListener("click", onGearClick);
   more.addEventListener("click", onMoreClick);
   tabButtons.forEach(function (button) { button.addEventListener("click", onTabClick); });
@@ -2572,6 +2732,11 @@ function createDynamicIsland(store, splash, ctx) {
       if (pollTimer !== 0) clearInterval(pollTimer);
       if (headerTimer !== 0) clearInterval(headerTimer);
       if (metaTimer !== 0) clearInterval(metaTimer);
+      stopTipWatch();
+      if (tipFx !== null) {
+        tipFx.remove();
+        tipFx = null;
+      }
       pollTimer = 0;
       headerTimer = 0;
       metaTimer = 0;

@@ -1373,6 +1373,25 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
   transition: background 160ms ease, color 160ms ease;
 }
 
+.dslg-island__tip {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 160, 195, 0.32);
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgba(255, 120, 170, 0.22), rgba(130, 40, 90, 0.16));
+  color: #ffd4e4;
+  font: 600 11px/1 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.dslg-island__tip:hover {
+  border-color: rgba(255, 190, 215, 0.62);
+  background: linear-gradient(145deg, rgba(255, 130, 180, 0.38), rgba(160, 50, 110, 0.24));
+  color: #ffffff;
+}
+
 .dslg-island__projects:hover {
   background: color-mix(in srgb, currentColor 15%, transparent);
   color: #ffffff;
@@ -2085,4 +2104,202 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
   .dslg-splash__complete {
     opacity: 1;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Tip / recharge celebration
+   -------------------------------------------------------------------------- */
+
+.dslg-tip-fx {
+  position: fixed;
+  z-index: 2147483600;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  animation: dslg-tip-in 260ms ease-out forwards;
+}
+
+.dslg-tip-fx.is-leaving {
+  opacity: 0;
+  transition: opacity 360ms ease;
+}
+
+.dslg-tip-fx__wash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(54% 46% at 50% 52%, rgba(255, 90, 145, 0.2), transparent 74%);
+}
+
+.dslg-tip-fx.is-car .dslg-tip-fx__wash {
+  background: radial-gradient(58% 48% at 50% 62%, rgba(70, 150, 255, 0.18), transparent 74%);
+}
+
+.dslg-tip-fx.is-rocket .dslg-tip-fx__wash {
+  background: radial-gradient(58% 50% at 50% 58%, rgba(90, 130, 255, 0.2), transparent 76%);
+}
+
+.dslg-tip-fx__stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.dslg-tip-fx__hero {
+  position: relative;
+  z-index: 2;
+  font-size: clamp(78px, 12vw, 132px);
+  line-height: 1;
+  filter: drop-shadow(0 0 28px rgba(120, 190, 255, 0.55)) drop-shadow(0 18px 38px rgba(0, 0, 0, 0.3));
+  will-change: transform, opacity;
+}
+
+.dslg-tip-fx.is-heart .dslg-tip-fx__hero {
+  filter: drop-shadow(0 0 32px rgba(255, 80, 140, 0.7)) drop-shadow(0 18px 38px rgba(0, 0, 0, 0.3));
+  animation: dslg-tip-heart 1.05s ease-in-out infinite;
+}
+
+.dslg-tip-fx.is-car .dslg-tip-fx__hero {
+  position: absolute;
+  left: -24vw;
+  bottom: 36%;
+  transform: scaleX(-1);
+  animation: dslg-tip-car 2.15s cubic-bezier(0.18, 0.78, 0.2, 1) forwards;
+}
+
+.dslg-tip-fx.is-rocket .dslg-tip-fx__hero {
+  position: absolute;
+  left: 50%;
+  bottom: -22vh;
+  margin-left: -0.45em;
+  animation: dslg-tip-rocket 2.55s cubic-bezier(0.18, 0.72, 0.2, 1) forwards;
+}
+
+.dslg-tip-fx__particles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.dslg-tip-fx__particle {
+  position: absolute;
+  color: rgba(255, 150, 190, 0.82);
+  animation: dslg-tip-float 2.4s ease-out infinite;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.dslg-tip-fx.is-car .dslg-tip-fx__particle {
+  width: 12%;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(150, 215, 255, 0.85));
+  color: transparent;
+  animation: dslg-tip-speed 1.4s ease-in-out infinite;
+}
+
+.dslg-tip-fx.is-rocket .dslg-tip-fx__particle {
+  color: rgba(170, 220, 255, 0.85);
+  animation: dslg-tip-star 2s ease-out infinite;
+}
+
+.dslg-tip-fx__badge {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 13%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  background:
+    linear-gradient(145deg, rgba(40, 80, 140, 0.55), rgba(8, 24, 52, 0.5));
+  color: rgba(238, 248, 255, 0.92);
+  font: 600 12px/1.2 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  letter-spacing: 0.03em;
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  backdrop-filter: blur(20px) saturate(170%);
+  box-shadow: 0 14px 38px rgba(0, 10, 30, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.dslg-tip-fx__badge strong {
+  color: #ffffff;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dslg-tip-fx.is-heart .dslg-tip-fx__badge {
+  border-color: rgba(255, 170, 200, 0.4);
+  background: linear-gradient(145deg, rgba(140, 40, 80, 0.55), rgba(50, 8, 28, 0.5));
+}
+
+.dslg-tip-fx.is-car .dslg-tip-fx__badge {
+  border-color: rgba(150, 210, 255, 0.4);
+}
+
+.dslg-tip-fx.is-rocket .dslg-tip-fx__badge {
+  border-color: rgba(170, 190, 255, 0.4);
+}
+
+.dslg-tip-fx.is-reduced .dslg-tip-fx__hero,
+.dslg-tip-fx.is-reduced .dslg-tip-fx__particle {
+  animation: none;
+}
+
+.dslg-tip-fx.is-reduced .dslg-tip-fx__hero {
+  opacity: 1;
+}
+
+@keyframes dslg-tip-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dslg-tip-heart {
+  0%, 100% { transform: scale(0.9); }
+  18% { transform: scale(1.12); }
+  34% { transform: scale(0.98); }
+  52% { transform: scale(1.06); }
+}
+
+@keyframes dslg-tip-float {
+  0% { opacity: 0; transform: translate(0, 18px) scale(0.65); }
+  18% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(var(--tip-drift), -140px) scale(1.2); }
+}
+
+@keyframes dslg-tip-car {
+  0% { left: -24vw; transform: scaleX(-1) translateY(0); }
+  18% { transform: scaleX(-1) translateY(-4px); }
+  36% { transform: scaleX(-1) translateY(2px); }
+  62% { transform: scaleX(-1) translateY(-3px); }
+  100% { left: 122vw; transform: scaleX(-1) translateY(0); }
+}
+
+@keyframes dslg-tip-rocket {
+  0% { bottom: -22vh; opacity: 0; transform: translateY(0) rotate(-8deg) scale(0.82); }
+  12% { opacity: 1; }
+  58% { transform: translateY(-54vh) rotate(2deg) scale(1); }
+  100% { bottom: 108vh; opacity: 0; transform: translateY(-20vh) rotate(8deg) scale(1.05); }
+}
+
+@keyframes dslg-tip-speed {
+  0% { opacity: 0; transform: translateX(22vw) scaleX(0.4); }
+  20% { opacity: 0.7; }
+  100% { opacity: 0; transform: translateX(-38vw) scaleX(1.2); }
+}
+
+@keyframes dslg-tip-star {
+  0% { opacity: 0; transform: translateY(30px) scale(0.6); }
+  24% { opacity: 0.85; }
+  100% { opacity: 0; transform: translateY(-150px) scale(1.1); }
 }
