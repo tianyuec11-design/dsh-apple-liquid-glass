@@ -1610,6 +1610,7 @@ function createDynamicIsland(store, splash, ctx) {
   var tipBase = null;
   var tipStartedAt = 0;
   var tipFx = null;
+  var nativeTopUp = null;
   var projectOpen = false;
   var projectView = "workspaces";
   var currentWorkspace = "";
@@ -2510,6 +2511,7 @@ function createDynamicIsland(store, splash, ctx) {
         if (next > tipBase + 0.004) {
           var amount = next - tipBase;
           stopTipWatch();
+          closeNativeTopUp();
           playTipEffect(amount);
         }
       });
@@ -2560,6 +2562,77 @@ function createDynamicIsland(store, splash, ctx) {
     openTopUpUrl();
   }
 
+  function openNativeTopUp() {
+    var platform = null;
+    try {
+      platform = window.dshPlatform || globalThis.dshPlatform;
+    } catch (error) {
+      platform = null;
+    }
+    if (!platform || typeof platform.open !== "function") {
+      openRecharge();
+      return;
+    }
+    closeNativeTopUp();
+    var chinese = true;
+    try {
+      chinese = (document.documentElement.lang || navigator.language || "zh").toLowerCase().indexOf("zh") === 0;
+    } catch (error) {
+      chinese = true;
+    }
+    var overlay = document.createElement("div");
+    overlay.className = "dslg-topup";
+    overlay.innerHTML = [
+      '<div class="dslg-topup__bar">',
+      '  <button class="dslg-topup__back" type="button">‹ ' + (chinese ? "返回 DeepSeek Harness" : "Back to DeepSeek Harness") + '</button>',
+      '  <span class="dslg-topup__title">' + (chinese ? "充值" : "Top up") + '</span>',
+      '</div>',
+      '<div class="dslg-topup__viewport"></div>',
+    ].join("");
+    document.body.appendChild(overlay);
+    var viewport = overlay.querySelector(".dslg-topup__viewport");
+    var back = overlay.querySelector(".dslg-topup__back");
+    function bounds() {
+      var rect = viewport.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }
+    function onResize() {
+      if (platform && typeof platform.setBounds === "function") {
+        platform.setBounds(bounds()).catch(function () {});
+      }
+    }
+    function onKeyDown(event) {
+      if (event.key === "Escape") closeNativeTopUp();
+    }
+    function close() {
+      closeNativeTopUp();
+    }
+    back.addEventListener("click", close);
+    window.addEventListener("resize", onResize);
+    document.addEventListener("keydown", onKeyDown, true);
+    nativeTopUp = { overlay: overlay, platform: platform, close: close, onResize: onResize, onKeyDown: onKeyDown };
+    var opening = platform.open("top-up", bounds());
+    if (opening && typeof opening.catch === "function") {
+      opening.catch(function () {
+        closeNativeTopUp();
+        openRecharge();
+      });
+    }  }
+
+  function closeNativeTopUp() {
+    if (nativeTopUp === null) return;
+    var current = nativeTopUp;
+    nativeTopUp = null;
+    try {
+      window.removeEventListener("resize", current.onResize);
+      document.removeEventListener("keydown", current.onKeyDown, true);
+      current.platform.close().catch(function () {});
+    } catch (error) {
+      /* The native view may already be closed. */
+    }
+    current.overlay.remove();
+  }
+
   function onTipClick(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -2567,7 +2640,7 @@ function createDynamicIsland(store, splash, ctx) {
     closePanel();
     closeProjects();
     startTipWatch();
-    openRecharge();
+    openNativeTopUp();
   }
 
   function onGearClick(event) {
@@ -2733,6 +2806,7 @@ function createDynamicIsland(store, splash, ctx) {
       if (headerTimer !== 0) clearInterval(headerTimer);
       if (metaTimer !== 0) clearInterval(metaTimer);
       stopTipWatch();
+      closeNativeTopUp();
       if (tipFx !== null) {
         tipFx.remove();
         tipFx = null;

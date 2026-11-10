@@ -50,7 +50,7 @@ Restart `dsh web` afterwards. `dsh plugin` needs pnpm on `PATH`; the Desktop app
 A pinned release is also available as:
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.7.0/dsh-apple-liquid-glass-0.7.0.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.7.1/dsh-apple-liquid-glass-0.7.1.tgz
 ```
 
 > dshmarket's **Themes** tab only lists themes in its catalog. A GitHub-installed theme appears under **Installed plugins**; it is still a complete bundle theme and can be enabled or disabled normally.
@@ -79,7 +79,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-Then install `dsh-apple-liquid-glass-0.7.0.tgz` through the plugin manager.
+Then install `dsh-apple-liquid-glass-0.7.1.tgz` through the plugin manager.
 
 ---
 
@@ -91,7 +91,7 @@ Everything lives in **Settings → Liquid Glass**; the chat surface has no float
 - **Surfaces**: the original four independent switches — composer card, sidebar controls, model picker, send button. Turn one off and it keeps its native look while the rest stay glass.
 - **Dynamic Island**: a 5cm × 1cm deep-navy glass pill at 1cm from the top, centred on the composer column, with a refractive rim. Collapsed it has no text, only a state dot 0.6cm from its left (red while DSH is thinking, green when idle). Click to expand into the conversation title, mode, chat/trajectory tabs, time, balance, context usage, and the Liquid Glass settings shortcut.
 - **Opening animation**: switch. Enabling it previews once; afterwards it plays once per DSH window session (a same-tab refresh does not repeat it).
-- **Tip entry**: expand the island and click **♥ Tip** to open the DSH/DeepSeek top-up page. After the balance increases, a heart (≤10), sports car (10–20) or rocket (>20) effect plays automatically.
+- **Tip entry**: expand the island and click **♥ Tip** to open the native DSH Platform top-up view directly on the payable QR code. After the balance increases, a heart (≤10), sports car (10–20) or rocket (>20) effect plays automatically.
 - **Model-switch particle orb**: automatic. After switching to a different model, a ~1/6-size blue orb appears just above the model trigger, flows for 5s and fades for 5s. It is transparent and pointer-transparent.
 - The choice persists per browser in `localStorage` (key `dsh-apple-liquid-glass.settings.v1`).
 - **0% removes every surface override**; the opening animation remains controlled by its own switch.
@@ -245,6 +245,8 @@ MIT. See [LICENSE](LICENSE).
 The opening font **Dancing Script** © The Dancing Script Project Authors, distributed under the SIL Open Font License 1.1; see [assets/fonts/OFL.txt](assets/fonts/OFL.txt).
 
 "Liquid Glass" describes the visual material. This project is not affiliated with or endorsed by Apple Inc.
+
+
 
 
 
