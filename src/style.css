@@ -2226,10 +2226,19 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
 
 .dslg-tip-fx.is-car .dslg-tip-fx__hero {
   position: absolute;
-  left: -24vw;
-  bottom: 36%;
-  transform: scaleX(-1);
-  animation: dslg-tip-car 2.15s cubic-bezier(0.18, 0.78, 0.2, 1) forwards;
+  left: -42vw;
+  bottom: 32%;
+  width: min(52vw, 380px);
+  height: auto;
+  transform: translateX(-50%);
+  animation: dslg-tip-car 2.4s cubic-bezier(0.18, 0.78, 0.2, 1) forwards;
+}
+
+.dslg-tip-car-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 26px rgba(90, 180, 255, 0.5)) drop-shadow(0 20px 30px rgba(0, 0, 0, 0.32));
 }
 
 .dslg-tip-fx.is-rocket .dslg-tip-fx__hero {
@@ -2339,11 +2348,13 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
 }
 
 @keyframes dslg-tip-car {
-  0% { left: -24vw; transform: scaleX(-1) translateY(0); }
-  18% { transform: scaleX(-1) translateY(-4px); }
-  36% { transform: scaleX(-1) translateY(2px); }
-  62% { transform: scaleX(-1) translateY(-3px); }
-  100% { left: 122vw; transform: scaleX(-1) translateY(0); }
+  0% { left: -42vw; opacity: 0; transform: translateX(-50%) translateY(0) rotate(-2deg); }
+  12% { opacity: 1; }
+  42% { left: 50%; opacity: 1; transform: translateX(-50%) translateY(-5px) rotate(0deg); }
+  50% { transform: translateX(-50%) translateY(2px) rotate(0deg); }
+  58% { transform: translateX(-50%) translateY(-2px) rotate(0deg); }
+  70% { left: 50%; opacity: 1; transform: translateX(-50%) translateY(0) rotate(0deg); }
+  100% { left: 50%; opacity: 1; transform: translateX(-50%) translateY(0) rotate(0deg); }
 }
 
 @keyframes dslg-tip-rocket {

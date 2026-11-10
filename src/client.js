@@ -2446,6 +2446,26 @@ function createDynamicIsland(store, splash, ctx) {
     }
     var chinese = language.indexOf("zh") === 0;
     var symbol = String(liveBalance.text || "").trim().charAt(0) === "$" ? "$" : "¥";
+    var carSvg = [
+      '<svg class="dslg-tip-car-svg" viewBox="0 0 360 140" aria-hidden="true">',
+      '<defs>',
+      '<linearGradient id="dslg-car-body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c8f6ff"/><stop offset="0.46" stop-color="#5aa9ff"/><stop offset="1" stop-color="#173b8f"/></linearGradient>',
+      '<linearGradient id="dslg-car-glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0feff" stop-opacity="0.95"/><stop offset="1" stop-color="#6da9de" stop-opacity="0.4"/></linearGradient>',
+      '<filter id="dslg-car-glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>',
+      '</defs>',
+      '<ellipse cx="180" cy="121" rx="142" ry="12" fill="rgba(40,130,255,0.24)"/>',
+      '<path d="M28 92 L36 70 Q44 54 70 50 L120 46 L158 22 Q170 14 192 16 L238 24 Q262 30 276 50 L318 60 Q340 66 342 84 L340 94 Q336 102 322 102 L42 102 Q28 102 28 92Z" fill="url(#dslg-car-body)" stroke="rgba(200,245,255,0.8)" stroke-width="1.5" filter="url(#dslg-car-glow)"/>',
+      '<path d="M126 48 L160 26 Q172 20 190 22 L224 29 L238 48Z" fill="url(#dslg-car-glass)" stroke="rgba(230,250,255,0.55)" stroke-width="1"/>',
+      '<path d="M55 92 L325 92" stroke="rgba(220,245,255,0.35)" stroke-width="1"/>',
+      '<circle cx="96" cy="102" r="24" fill="#07142a" stroke="rgba(160,225,255,0.8)" stroke-width="3"/>',
+      '<circle cx="96" cy="102" r="9" fill="#7fd6ff"/>',
+      '<circle cx="272" cy="102" r="24" fill="#07142a" stroke="rgba(160,225,255,0.8)" stroke-width="3"/>',
+      '<circle cx="272" cy="102" r="9" fill="#7fd6ff"/>',
+      '<rect x="30" y="76" width="18" height="6" rx="3" fill="#ff5d5d"/>',
+      '<path d="M334 78 L358 70 L358 90 L336 92Z" fill="rgba(190,245,255,0.55)"/>',
+      '</svg>'
+    ].join("");
+    var heroMarkup = kind === "heart" ? "❤" : kind === "car" ? carSvg : "🚀";
     var overlay = document.createElement("div");
     overlay.className = "dslg-tip-fx is-" + kind;
     overlay.setAttribute("role", "status");
@@ -2453,7 +2473,7 @@ function createDynamicIsland(store, splash, ctx) {
     overlay.innerHTML = [
       '<div class="dslg-tip-fx__wash"></div>',
       '<div class="dslg-tip-fx__stage">',
-      '  <div class="dslg-tip-fx__hero">' + (kind === "heart" ? "❤" : kind === "car" ? "🏎️" : "🚀") + '</div>',
+      '  <div class="dslg-tip-fx__hero">' + heroMarkup + '</div>',
       '  <div class="dslg-tip-fx__particles"></div>',
       '</div>',
       '<div class="dslg-tip-fx__badge"><span>' + (chinese ? "打赏成功" : "Support received") + '</span><strong>' + symbol + amount.toFixed(2) + '</strong></div>',
