@@ -2268,9 +2268,23 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
 .dslg-tip-fx.is-rocket .dslg-tip-fx__hero {
   position: absolute;
   left: 50%;
-  bottom: -22vh;
-  margin-left: -0.45em;
-  animation: dslg-tip-rocket 2.55s cubic-bezier(0.18, 0.72, 0.2, 1) forwards;
+  bottom: -32vh;
+  width: min(20vw, 140px);
+  height: auto;
+  transform: translateX(-50%);
+  animation: dslg-tip-rocket 4.4s cubic-bezier(0.2, 0.72, 0.2, 1) forwards;
+}
+
+.dslg-tip-rocket-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 30px rgba(110, 205, 255, 0.55)) drop-shadow(0 24px 38px rgba(0, 0, 0, 0.32));
+}
+
+.dslg-tip-rocket-svg .flame {
+  transform-origin: 50% 0;
+  animation: dslg-tip-flame 150ms ease-in-out infinite alternate;
 }
 
 .dslg-tip-fx__particles {
@@ -2382,10 +2396,17 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
 }
 
 @keyframes dslg-tip-rocket {
-  0% { bottom: -22vh; opacity: 0; transform: translateY(0) rotate(-8deg) scale(0.82); }
-  12% { opacity: 1; }
-  58% { transform: translateY(-54vh) rotate(2deg) scale(1); }
-  100% { bottom: 108vh; opacity: 0; transform: translateY(-20vh) rotate(8deg) scale(1.05); }
+  0% { bottom: -32vh; opacity: 0; transform: translateX(-50%) scale(0.86); }
+  10% { opacity: 1; }
+  40% { bottom: 40vh; opacity: 1; transform: translateX(-50%) scale(1); }
+  52% { bottom: 40vh; opacity: 1; transform: translateX(-50%) scale(1.02); }
+  60% { bottom: 44vh; opacity: 1; transform: translateX(-50%) scale(1); }
+  100% { bottom: 120vh; opacity: 0; transform: translateX(-50%) scale(1.08); }
+}
+
+@keyframes dslg-tip-flame {
+  from { transform: scaleY(0.82) scaleX(0.9); opacity: 0.78; }
+  to { transform: scaleY(1.1) scaleX(1.04); opacity: 1; }
 }
 
 @keyframes dslg-tip-speed {

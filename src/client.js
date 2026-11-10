@@ -2475,7 +2475,24 @@ function createDynamicIsland(store, splash, ctx) {
       '<path d="M334 78 L358 70 L358 90 L336 92Z" fill="rgba(190,245,255,0.55)"/>',
       '</svg>'
     ].join("");
-    var heroMarkup = kind === "heart" ? "❤" : kind === "car" ? carSvg : "🚀";
+    var rocketSvg = [
+      '<svg class="dslg-tip-rocket-svg" viewBox="0 0 140 270" aria-hidden="true">',
+      '<defs>',
+      '<linearGradient id="dslg-rocket-body" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7fd6ff"/><stop offset="0.45" stop-color="#eefcff"/><stop offset="0.62" stop-color="#9edcff"/><stop offset="1" stop-color="#2b69c9"/></linearGradient>',
+      '<linearGradient id="dslg-rocket-flame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="0.3" stop-color="#8ee6ff"/><stop offset="0.72" stop-color="#4a9dff"/><stop offset="1" stop-color="#ffb15e" stop-opacity="0"/></linearGradient>',
+      '<filter id="dslg-rocket-glow" x="-30%" y="-20%" width="160%" height="150%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>',
+      '</defs>',
+      '<path class="flame" d="M52 186 C57 215 63 240 70 258 C77 240 83 215 88 186Z" fill="url(#dslg-rocket-flame)"/>',
+      '<path d="M42 148 L16 202 L44 190Z" fill="#1d4f9e" stroke="rgba(180,235,255,0.6)" stroke-width="1.5"/>',
+      '<path d="M98 148 L124 202 L96 190Z" fill="#1d4f9e" stroke="rgba(180,235,255,0.6)" stroke-width="1.5"/>',
+      '<path d="M70 8 C87 38 98 78 98 126 L98 188 L42 188 L42 126 C42 78 53 38 70 8Z" fill="url(#dslg-rocket-body)" stroke="rgba(220,250,255,0.85)" stroke-width="2" filter="url(#dslg-rocket-glow)"/>',
+      '<path d="M70 8 C79 26 86 48 90 72 L50 72 C54 48 61 26 70 8Z" fill="#ff6b6b"/>',
+      '<circle cx="70" cy="105" r="19" fill="#0a2450" stroke="rgba(210,248,255,0.9)" stroke-width="3"/>',
+      '<circle cx="70" cy="105" r="10" fill="#73d9ff"/>',
+      '<path d="M56 153 L70 166 L84 153" fill="none" stroke="rgba(120,215,255,0.75)" stroke-width="2"/>',
+      '</svg>'
+    ].join("");
+    var heroMarkup = kind === "heart" ? "❤" : kind === "car" ? carSvg : rocketSvg;
     var overlay = document.createElement("div");
     overlay.className = "dslg-tip-fx is-" + kind;
     overlay.setAttribute("role", "status");
