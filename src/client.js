@@ -777,7 +777,14 @@ function dslgAmapReverseLabel(key, latitude, longitude) {
 
 function dslgFetchHostGeo() {
   if (typeof fetch !== "function") return Promise.reject(new Error("no fetch"));
-  return fetch("/dsh-apple-liquid-glass/ip", { cache: "no-store" }).then(function (response) {
+  var controller = typeof AbortController === "function" ? new AbortController() : null;
+  var timer = setTimeout(function () {
+    if (controller) controller.abort();
+  }, 3000);
+  return fetch("/dsh-apple-liquid-glass/ip", {
+    cache: "no-store",
+    signal: controller ? controller.signal : undefined
+  }).then(function (response) {
     if (!response.ok) throw new Error("host ip HTTP " + response.status);
     return response.json();
   }).then(function (data) {
@@ -796,6 +803,12 @@ function dslgFetchHostGeo() {
       /* Session storage may be unavailable. */
     }
     return geo;
+  }).then(function (geo) {
+    clearTimeout(timer);
+    return geo;
+  }, function (error) {
+    clearTimeout(timer);
+    throw error;
   });
 }
 
@@ -1485,6 +1498,7 @@ function createDynamicIsland(store, splash, ctx) {
     '      <span class="dslg-island__title">DSH</span>',
     '      <span class="dslg-island__mode">标准模式</span>',
     '    </div>',
+    '    <button class="dslg-island__news" type="button" aria-label="DeepSeek 最新消息">资讯</button>',
     '    <button class="dslg-island__tip" type="button" aria-label="打赏">♥ 打赏</button>',
     '    <button class="dslg-island__projects" type="button">工作区</button>',
     '    <button class="dslg-island__gear" type="button" aria-label="液态玻璃设置">',
@@ -1577,6 +1591,21 @@ function createDynamicIsland(store, splash, ctx) {
     '<div class="dslg-task-list"></div>',
   ].join("");
   document.body.appendChild(projectModal);
+
+  var newsPanel = document.createElement("div");
+  newsPanel.className = "dslg-news-panel";
+  newsPanel.setAttribute("aria-hidden", "true");
+  newsPanel.innerHTML = [
+    '<div class="dslg-news-panel__head">',
+    '  <div class="dslg-news-panel__heading"><span>DEEPSEEK</span><strong>最新消息</strong></div>',
+    '  <button class="dslg-news-panel__refresh" type="button" aria-label="刷新">↻</button>',
+    '  <button class="dslg-news-panel__close" type="button" aria-label="关闭">×</button>',
+    '</div>',
+    '<div class="dslg-news-panel__summary"><span>摘要</span><p></p></div>',
+    '<div class="dslg-news-panel__list"></div>',
+    '<div class="dslg-news-panel__foot"><span class="dslg-news-panel__source">api-docs.deepseek.com/news</span><a href="https://api-docs.deepseek.com/news/" target="_blank" rel="noopener noreferrer">打开官网 ↗</a></div>',
+  ].join("");
+  document.body.appendChild(newsPanel);
   var panelOpen = false;
 
   var dot = host.querySelector(".dslg-island__dot");
@@ -1598,6 +1627,26 @@ function createDynamicIsland(store, splash, ctx) {
   var panelTipPreviews = Array.prototype.slice.call(panel.querySelectorAll("[data-tip-preview]"));
   var projectsButton = host.querySelector(".dslg-island__projects");
   var tipButton = host.querySelector(".dslg-island__tip");
+  var newsButton = host.querySelector(".dslg-island__news");
+  var newsClose = newsPanel.querySelector(".dslg-news-panel__close");
+  var newsRefresh = newsPanel.querySelector(".dslg-news-panel__refresh");
+  var newsSummary = newsPanel.querySelector(".dslg-news-panel__summary p");
+  var newsList = newsPanel.querySelector(".dslg-news-panel__list");
+  var newsSource = newsPanel.querySelector(".dslg-news-panel__source");
+  var newsOpen = false;
+  var newsFetching = false;
+  var newsData = null;
+  var newsFromHost = false;
+  var newsFallback = {
+    summary: "DeepSeek 最近的主线是全栈 App API：把 Web 搜索、深度思考搜索、文件输入、URL 读取、安全检查和语音能力开放给 API，并公布工具计价；上一轮 V4.1-Flash-1017 则主打更强基准、更低成本，以及从零构建完整项目。",
+    items: [
+      { date: "2026/11/13", title: "DeepSeek Full-Suite App API Release", url: "https://api-docs.deepseek.com/news/news261113", summary: "App 的搜索、文件、链接、安全与语音能力开放到 API，并开源聊天前端 Demo。" },
+      { date: "2026/10/17", title: "DeepSeek-V4.1-Flash-1017 Release", url: "https://api-docs.deepseek.com/news/news261017", summary: "wish-driven programming，基准/成本 Pareto 改善，支持从零构建完整项目。" },
+      { date: "2026/09/10", title: "DeepSeek-V4.1-Flash Release", url: "https://api-docs.deepseek.com/news/news260910", summary: "552B MoE 非对称架构，KV cache 大幅缩小，API 降价并支持多模态。" },
+      { date: "2026/08/21", title: "DeepSeek-V4-Flash-Vision-Exp Release", url: "https://api-docs.deepseek.com/news/news260821", summary: "多模态 API 上线。" },
+      { date: "2026/08/13", title: "DeepSeek-V4-Pro GA Release", url: "https://api-docs.deepseek.com/news/news260813", summary: "V4-Pro 正式 GA。" },
+    ],
+  };
   var projectBack = projectModal.querySelector(".dslg-carousel__back");
   var projectClose = projectModal.querySelector(".dslg-carousel__close");
   var projectTitle = projectModal.querySelector(".dslg-carousel__title");
@@ -1810,6 +1859,7 @@ function createDynamicIsland(store, splash, ctx) {
     if (conflict) {
       closePanel();
       closeProjects();
+      closeNews();
     }
   }
 
@@ -2004,6 +2054,8 @@ function createDynamicIsland(store, splash, ctx) {
     panel.classList.toggle("is-on", panelOpen);
     panel.setAttribute("aria-hidden", panelOpen ? "false" : "true");
     if (panelOpen) {
+      closeNews();
+      closeProjects();
       renderPanel();
       placePanel();
     }
@@ -2337,6 +2389,7 @@ function createDynamicIsland(store, splash, ctx) {
     }
     if (projectOpen) {
       closePanel();
+      closeNews();
       projectView = "workspaces";
       projectIndex = 0;
       currentWorkspace = "";
@@ -2565,6 +2618,119 @@ function createDynamicIsland(store, splash, ctx) {
     }, 5000);
   }
 
+  function renderNews(data, fromHost) {
+    var payload = data && Array.isArray(data.items) && data.items.length ? data : newsFallback;
+    newsData = payload;
+    newsFromHost = !!fromHost;
+    newsSummary.textContent = payload.summary || "暂无摘要";
+    newsSource.textContent = fromHost
+      ? "官方新闻 · " + (payload.updatedAt ? new Date(payload.updatedAt).toLocaleString("zh-CN", { hour12: false }) : "已更新")
+      : "本地精选摘要 · 官方最新";
+    newsList.innerHTML = "";
+    var items = payload.items || [];
+    items.forEach(function (item) {
+      var link = document.createElement("a");
+      link.className = "dslg-news-panel__item";
+      link.href = item.url || "https://api-docs.deepseek.com/news/";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      var date = document.createElement("span");
+      date.className = "dslg-news-panel__date";
+      date.textContent = item.date || "";
+      var title = document.createElement("strong");
+      title.className = "dslg-news-panel__title";
+      title.textContent = item.title || "";
+      link.appendChild(date);
+      link.appendChild(title);
+      if (item.summary) {
+        var summary = document.createElement("small");
+        summary.className = "dslg-news-panel__excerpt";
+        summary.textContent = item.summary;
+        link.appendChild(summary);
+      }
+      newsList.appendChild(link);
+    });
+    if (items.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "dslg-news-panel__empty";
+      empty.textContent = "暂时没有获取到消息，稍后再试。";
+      newsList.appendChild(empty);
+    }
+  }
+
+  function fetchNews() {
+    if (newsFetching) return;
+    newsFetching = true;
+    newsRefresh.classList.add("is-spinning");
+    if (newsData === null) {
+      newsSummary.textContent = "正在获取 DeepSeek 官方最新消息…";
+      newsList.innerHTML = '<div class="dslg-news-panel__empty">加载中…</div>';
+    }
+    var controller = typeof AbortController === "function" ? new AbortController() : null;
+    var timer = setTimeout(function () {
+      if (controller) controller.abort();
+    }, 9000);
+    fetch("/dsh-apple-liquid-glass/news", {
+      cache: "no-store",
+      signal: controller ? controller.signal : undefined
+    }).then(function (response) {
+      if (!response.ok) throw new Error("news HTTP " + response.status);
+      return response.json();
+    }).then(function (data) {
+      if (!data || !data.ok || !Array.isArray(data.items) || data.items.length === 0) {
+        throw new Error("news unavailable");
+      }
+      renderNews(data, true);
+    }).catch(function () {
+      renderNews(newsFallback, false);
+    }).then(function () {
+      clearTimeout(timer);
+      newsFetching = false;
+      newsRefresh.classList.remove("is-spinning");
+    });
+  }
+
+  function placeNews() {
+    if (!newsOpen) return;
+    var width = Math.min(window.innerWidth - 24, 470);
+    var rect = host.getBoundingClientRect();
+    newsPanel.style.width = width + "px";
+    newsPanel.style.left = Math.round(Math.max(12, Math.min(window.innerWidth - width - 12, window.innerWidth / 2 - width / 2))) + "px";
+    newsPanel.style.top = Math.round(Math.min(window.innerHeight * 0.34, rect.bottom + 10)) + "px";
+  }
+
+  function toggleNews(next) {
+    var value = typeof next === "boolean" ? next : !newsOpen;
+    if (value === newsOpen) return;
+    newsOpen = value;
+    newsPanel.classList.toggle("is-on", newsOpen);
+    newsPanel.setAttribute("aria-hidden", newsOpen ? "false" : "true");
+    if (newsOpen) {
+      closePanel();
+      closeProjects();
+      closeNativeTopUp();
+      renderNews(newsData || newsFallback, newsFromHost);
+      placeNews();
+      fetchNews();
+    }
+  }
+
+  function closeNews() {
+    toggleNews(false);
+  }
+
+  function onNewsClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleNews(!newsOpen);
+  }
+
+  function onNewsRefresh(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    fetchNews();
+  }
+
   function findRechargeControl() {
     var candidates = Array.prototype.slice.call(document.querySelectorAll('button, a, [role="menuitem"], [role="button"]'));
     for (var index = 0; index < candidates.length; index += 1) {
@@ -2620,6 +2786,7 @@ function createDynamicIsland(store, splash, ctx) {
       openRecharge();
       return;
     }
+    closeNews();
     closeNativeTopUp();
     var chinese = true;
     try {
@@ -2658,7 +2825,14 @@ function createDynamicIsland(store, splash, ctx) {
     window.addEventListener("resize", onResize);
     document.addEventListener("keydown", onKeyDown, true);
     nativeTopUp = { overlay: overlay, platform: platform, close: close, onResize: onResize, onKeyDown: onKeyDown };
-    var opening = platform.open("top-up", bounds());
+    var opening = null;
+    try {
+      opening = platform.open("top-up", bounds());
+    } catch (error) {
+      closeNativeTopUp();
+      openRecharge();
+      return;
+    }
     if (opening && typeof opening.catch === "function") {
       opening.catch(function () {
         closeNativeTopUp();
@@ -2686,6 +2860,7 @@ function createDynamicIsland(store, splash, ctx) {
     setOpen(false);
     closePanel();
     closeProjects();
+    closeNews();
     startTipWatch();
     openNativeTopUp();
   }
@@ -2750,19 +2925,27 @@ function createDynamicIsland(store, splash, ctx) {
   }
 
   function onOutside(event) {
+    if (newsOpen && !newsPanel.contains(event.target) && !host.contains(event.target)) {
+      closeNews();
+      return;
+    }
     if (projectOpen && !projectModal.contains(event.target) && !host.contains(event.target)) {
       closeProjects();
       return;
     }
-    if (panelOpen && !panel.contains(event.target) && !host.contains(event.target) && !projectModal.contains(event.target)) {
+    if (panelOpen && !panel.contains(event.target) && !host.contains(event.target) && !projectModal.contains(event.target) && !newsPanel.contains(event.target)) {
       closePanel();
       return;
     }
-    if (isOpen && !host.contains(event.target) && !panel.contains(event.target) && !projectModal.contains(event.target)) setOpen(false);
+    if (isOpen && !host.contains(event.target) && !panel.contains(event.target) && !projectModal.contains(event.target) && !newsPanel.contains(event.target)) setOpen(false);
   }
 
   function onKeyDown(event) {
     if (event.key === "Escape") {
+      if (newsOpen) {
+        closeNews();
+        return;
+      }
       if (projectOpen) {
         closeProjects();
         return;
@@ -2783,6 +2966,9 @@ function createDynamicIsland(store, splash, ctx) {
   host.addEventListener("keydown", onKeyDown);
   projectsButton.addEventListener("click", onProjectsClick);
   tipButton.addEventListener("click", onTipClick);
+  newsButton.addEventListener("click", onNewsClick);
+  newsClose.addEventListener("click", closeNews);
+  newsRefresh.addEventListener("click", onNewsRefresh);
   gear.addEventListener("click", onGearClick);
   more.addEventListener("click", onMoreClick);
   tabButtons.forEach(function (button) { button.addEventListener("click", onTabClick); });
@@ -2840,6 +3026,7 @@ function createDynamicIsland(store, splash, ctx) {
   window.addEventListener("resize", place);
   window.addEventListener("resize", placePanel);
   window.addEventListener("resize", placeProjectModal);
+  window.addEventListener("resize", placeNews);
   updateHeader();
   updateBusy();
   updateMeta();
@@ -2879,9 +3066,12 @@ function createDynamicIsland(store, splash, ctx) {
       window.removeEventListener("resize", place);
       window.removeEventListener("resize", placePanel);
       window.removeEventListener("resize", placeProjectModal);
+      window.removeEventListener("resize", placeNews);
+      closeNews();
       host.remove();
       panel.remove();
       projectModal.remove();
+      newsPanel.remove();
     },
   };
 }
