@@ -1601,7 +1601,14 @@ function createDynamicIsland(store, splash, ctx) {
     '  <button class="dslg-news-panel__refresh" type="button" aria-label="刷新">↻</button>',
     '  <button class="dslg-news-panel__close" type="button" aria-label="关闭">×</button>',
     '</div>',
-    '<div class="dslg-news-panel__summary"><span>摘要</span><p></p></div>',
+    '<div class="dslg-news-panel__summary">',
+    '  <div class="dslg-news-panel__summary-head"><span>摘要</span><button class="dslg-news-panel__ask" type="button">✦ 询问</button></div>',
+    '  <p></p>',
+    '  <div class="dslg-news-panel__consult" hidden>',
+    '    <div class="dslg-news-panel__consult-head"><span>AI 细致解读</span><button type="button" class="dslg-news-panel__consult-close" aria-label="关闭解读">×</button></div>',
+    '    <div class="dslg-news-panel__consult-body"></div>',
+    '  </div>',
+    '</div>',
     '<div class="dslg-news-panel__list"></div>',
     '<div class="dslg-news-panel__foot"><span class="dslg-news-panel__source">api-docs.deepseek.com/news</span><a href="https://api-docs.deepseek.com/news/" target="_blank" rel="noopener noreferrer">打开官网 ↗</a></div>',
   ].join("");
@@ -1631,10 +1638,15 @@ function createDynamicIsland(store, splash, ctx) {
   var newsClose = newsPanel.querySelector(".dslg-news-panel__close");
   var newsRefresh = newsPanel.querySelector(".dslg-news-panel__refresh");
   var newsSummary = newsPanel.querySelector(".dslg-news-panel__summary p");
+  var newsAsk = newsPanel.querySelector(".dslg-news-panel__ask");
+  var newsConsult = newsPanel.querySelector(".dslg-news-panel__consult");
+  var newsConsultBody = newsPanel.querySelector(".dslg-news-panel__consult-body");
+  var newsConsultClose = newsPanel.querySelector(".dslg-news-panel__consult-close");
   var newsList = newsPanel.querySelector(".dslg-news-panel__list");
   var newsSource = newsPanel.querySelector(".dslg-news-panel__source");
   var newsOpen = false;
   var newsFetching = false;
+  var newsConsulting = false;
   var newsData = null;
   var newsFromHost = false;
   var newsFallback = {
@@ -2618,10 +2630,66 @@ function createDynamicIsland(store, splash, ctx) {
     }, 5000);
   }
 
+  function resetConsult() {
+    newsConsult.hidden = true;
+    newsConsultBody.textContent = "";
+    newsAsk.disabled = false;
+    newsAsk.textContent = "✦ 询问";
+  }
+
+  function askNewsSummary() {
+    var payload = newsData || newsFallback;
+    var summary = String(payload.summary || "").trim();
+    if (!summary || newsAsk.disabled) return;
+    newsAsk.disabled = true;
+    newsConsulting = true;
+    newsAsk.textContent = "分析中…";
+    newsConsult.hidden = false;
+    newsConsultBody.textContent = "正在让 AI 对摘要做细致解读…";
+    var controller = typeof AbortController === "function" ? new AbortController() : null;
+    var timer = setTimeout(function () {
+      if (controller) controller.abort();
+    }, 35000);
+    fetch("/dsh-apple-liquid-glass/news/consult", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "content-type": "application/json" },
+      signal: controller ? controller.signal : undefined,
+      body: JSON.stringify({
+        summary: summary,
+        items: (payload.items || []).map(function (item) {
+          return { date: item.date, title: item.title };
+        }),
+      }),
+    }).then(function (response) {
+      if (response.status === 404) throw new Error("restart-required");
+      if (!response.ok) throw new Error("consult HTTP " + response.status);
+      return response.json();
+    }).then(function (data) {
+      if (!data || !data.ok || !data.text) throw new Error("consult unavailable");
+      newsConsultBody.textContent = "";
+      String(data.text).split(/\n{2,}/).forEach(function (paragraph) {
+        var p = document.createElement("p");
+        p.textContent = paragraph;
+        newsConsultBody.appendChild(p);
+      });
+    }).catch(function (error) {
+      newsConsultBody.textContent = error && error.message === "restart-required"
+        ? "当前宿主还没有加载 AI 咨询接口，请完全退出 DSH 再打开一次。"
+        : "AI 咨询暂时不可用，请稍后重试。";
+    }).then(function () {
+      clearTimeout(timer);
+      newsConsulting = false;
+      newsAsk.disabled = false;
+      newsAsk.textContent = "✦ 询问";
+    });
+  }
+
   function renderNews(data, fromHost) {
     var payload = data && Array.isArray(data.items) && data.items.length ? data : newsFallback;
     newsData = payload;
     newsFromHost = !!fromHost;
+    if (!newsConsulting) resetConsult();
     newsSummary.textContent = payload.summary || "暂无摘要";
     newsSource.textContent = fromHost
       ? "官方新闻 · " + (payload.updatedAt ? new Date(payload.updatedAt).toLocaleString("zh-CN", { hour12: false }) : "已更新")
@@ -2969,6 +3037,8 @@ function createDynamicIsland(store, splash, ctx) {
   newsButton.addEventListener("click", onNewsClick);
   newsClose.addEventListener("click", closeNews);
   newsRefresh.addEventListener("click", onNewsRefresh);
+  newsAsk.addEventListener("click", askNewsSummary);
+  newsConsultClose.addEventListener("click", resetConsult);
   gear.addEventListener("click", onGearClick);
   more.addEventListener("click", onMoreClick);
   tabButtons.forEach(function (button) { button.addEventListener("click", onTabClick); });
