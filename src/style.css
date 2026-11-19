@@ -1743,6 +1743,13 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
   margin-left: 4px;
 }
 
+.dslg-island__meta .dslg-island__archive {
+  height: 24px;
+  margin-left: auto;
+  padding: 0 10px;
+  font-size: 10px;
+}
+
 .dslg-island__meta {
   display: flex;
   align-items: center;
