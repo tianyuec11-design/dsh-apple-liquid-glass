@@ -1498,6 +1498,7 @@ function createDynamicIsland(store, splash, ctx) {
     '      <span class="dslg-island__title">DSH</span>',
     '      <span class="dslg-island__mode">标准模式</span>',
     '    </div>',
+    '    <button class="dslg-island__archive" type="button" aria-label="归档文件管理">归档</button>',
     '    <button class="dslg-island__news" type="button" aria-label="DeepSeek 最新消息">资讯</button>',
     '    <button class="dslg-island__tip" type="button" aria-label="打赏">♥ 打赏</button>',
     '    <button class="dslg-island__projects" type="button">工作区</button>',
@@ -1613,6 +1614,37 @@ function createDynamicIsland(store, splash, ctx) {
     '<div class="dslg-news-panel__foot"><span class="dslg-news-panel__source">api-docs.deepseek.com/news</span><a href="https://api-docs.deepseek.com/news/" target="_blank" rel="noopener noreferrer">打开官网 ↗</a></div>',
   ].join("");
   document.body.appendChild(newsPanel);
+
+  var archivePanel = document.createElement("div");
+  archivePanel.className = "dslg-archive-panel";
+  archivePanel.setAttribute("aria-hidden", "true");
+  archivePanel.innerHTML = [
+    '<div class="dslg-archive-panel__head">',
+    '  <div class="dslg-archive-panel__heading"><span>ARCHIVE</span><strong>归档文件管理</strong></div>',
+    '  <button class="dslg-archive-panel__refresh" type="button" aria-label="刷新">↻</button>',
+    '  <button class="dslg-archive-panel__close" type="button" aria-label="关闭">×</button>',
+    '</div>',
+    '<div class="dslg-archive-panel__stage">',
+    '  <button class="dslg-archive-panel__nav is-prev" type="button" aria-label="上一个">‹</button>',
+    '  <div class="dslg-archive-panel__track"></div>',
+    '  <button class="dslg-archive-panel__nav is-next" type="button" aria-label="下一个">›</button>',
+    '</div>',
+    '<div class="dslg-archive-panel__empty">正在读取归档…</div>',
+    '<div class="dslg-archive-panel__foot"><span class="dslg-archive-panel__count">0 个归档</span><span class="dslg-archive-panel__hint">滚轮切换 · 点卡片打开</span></div>',
+  ].join("");
+  document.body.appendChild(archivePanel);
+  var archiveClose = archivePanel.querySelector(".dslg-archive-panel__close");
+  var archiveRefresh = archivePanel.querySelector(".dslg-archive-panel__refresh");
+  var archiveTrack = archivePanel.querySelector(".dslg-archive-panel__track");
+  var archivePrev = archivePanel.querySelector(".dslg-archive-panel__nav.is-prev");
+  var archiveNext = archivePanel.querySelector(".dslg-archive-panel__nav.is-next");
+  var archiveEmpty = archivePanel.querySelector(".dslg-archive-panel__empty");
+  var archiveCount = archivePanel.querySelector(".dslg-archive-panel__count");
+  var archiveOpen = false;
+  var archiveIndex = 0;
+  var archiveFiles = [];
+  var archiveLoading = false;
+  var archiveBusy = false;
   var panelOpen = false;
 
   var dot = host.querySelector(".dslg-island__dot");
@@ -1635,6 +1667,7 @@ function createDynamicIsland(store, splash, ctx) {
   var projectsButton = host.querySelector(".dslg-island__projects");
   var tipButton = host.querySelector(".dslg-island__tip");
   var newsButton = host.querySelector(".dslg-island__news");
+  var archiveButton = host.querySelector(".dslg-island__archive");
   var newsClose = newsPanel.querySelector(".dslg-news-panel__close");
   var newsRefresh = newsPanel.querySelector(".dslg-news-panel__refresh");
   var newsSummary = newsPanel.querySelector(".dslg-news-panel__summary p");
@@ -1872,6 +1905,7 @@ function createDynamicIsland(store, splash, ctx) {
       closePanel();
       closeProjects();
       closeNews();
+      closeArchive();
     }
   }
 
@@ -2068,6 +2102,7 @@ function createDynamicIsland(store, splash, ctx) {
     if (panelOpen) {
       closeNews();
       closeProjects();
+      closeArchive();
       renderPanel();
       placePanel();
     }
@@ -2102,7 +2137,13 @@ function createDynamicIsland(store, splash, ctx) {
     } catch (error) {
       sessionSnapshot = null;
     }
-    return { workspaces: workspaceSnapshot.items, sessions: sessionSnapshot, workspaceService: workspaceService, sessionService: sessionService };
+    return {
+      workspaces: workspaceSnapshot.items,
+      archivedSessionIds: Array.isArray(workspaceSnapshot.archivedSessionIds) ? workspaceSnapshot.archivedSessionIds : [],
+      sessions: sessionSnapshot,
+      workspaceService: workspaceService,
+      sessionService: sessionService
+    };
   }
 
   function sidebarRoot() {
@@ -2402,6 +2443,7 @@ function createDynamicIsland(store, splash, ctx) {
     if (projectOpen) {
       closePanel();
       closeNews();
+      closeArchive();
       projectView = "workspaces";
       projectIndex = 0;
       currentWorkspace = "";
@@ -2776,6 +2818,7 @@ function createDynamicIsland(store, splash, ctx) {
     if (newsOpen) {
       closePanel();
       closeProjects();
+      closeArchive();
       closeNativeTopUp();
       renderNews(newsData || newsFallback, newsFromHost);
       placeNews();
@@ -2797,6 +2840,241 @@ function createDynamicIsland(store, splash, ctx) {
     event.preventDefault();
     event.stopPropagation();
     fetchNews();
+  }
+
+  function collectArchivedFiles() {
+    var data = workspaceSnapshots();
+    if (!data || !Array.isArray(data.archivedSessionIds)) return [];
+    var sessions = data.sessions && data.sessions.byId ? data.sessions.byId : {};
+    return data.archivedSessionIds.map(function (sessionId, index) {
+      var summary = sessions[sessionId] || {};
+      var owner = (data.workspaces || []).filter(function (workspace) {
+        return Array.isArray(workspace.sessionIds) && workspace.sessionIds.indexOf(sessionId) >= 0;
+      })[0];
+      var date = summary.updatedAt || summary.createdAt || "";
+      if (date) {
+        try {
+          date = new Date(date).toLocaleDateString("zh-CN");
+        } catch (error) {
+          date = "";
+        }
+      }
+      return {
+        sessionId: sessionId,
+        title: summary.displayTitle || summary.title || "归档会话 " + (index + 1),
+        workspaceTitle: owner ? owner.title : "未知工作区",
+        workspacePath: owner ? owner.path : "",
+        date: date,
+        storage: "",
+        exists: true,
+      };
+    });
+  }
+
+  function renderArchives() {
+    archiveTrack.innerHTML = "";
+    archiveFiles.forEach(function (item) {
+      var card = document.createElement("div");
+      card.className = "dslg-archive-card";
+      card.setAttribute("data-session-id", item.sessionId);
+      var eyebrow = document.createElement("span");
+      eyebrow.className = "dslg-archive-card__eyebrow";
+      eyebrow.textContent = item.workspaceTitle || "工作区";
+      var title = document.createElement("strong");
+      title.className = "dslg-archive-card__title";
+      title.textContent = item.title;
+      var meta = document.createElement("small");
+      meta.className = "dslg-archive-card__meta";
+      meta.textContent = (item.date ? item.date + " · " : "") + "已归档";
+      var actions = document.createElement("div");
+      actions.className = "dslg-archive-card__actions";
+      var unarchive = document.createElement("button");
+      unarchive.type = "button";
+      unarchive.className = "is-unarchive";
+      unarchive.textContent = "取消归档";
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "is-delete";
+      remove.textContent = "删除文件";
+      unarchive.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        archiveAction(item, "unarchive");
+      });
+      remove.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        archiveAction(item, "delete");
+      });
+      actions.appendChild(unarchive);
+      actions.appendChild(remove);
+      card.appendChild(eyebrow);
+      card.appendChild(title);
+      card.appendChild(meta);
+      card.appendChild(actions);
+      card.addEventListener("click", function () {
+        openArchiveSession(item);
+      });
+      archiveTrack.appendChild(card);
+    });
+    if (archiveIndex >= archiveFiles.length) archiveIndex = Math.max(0, archiveFiles.length - 1);
+    layoutArchives();
+    archiveCount.textContent = archiveFiles.length + " 个归档";
+    archiveEmpty.textContent = archiveFiles.length === 0 ? "暂无归档文件" : "";
+    archiveEmpty.classList.toggle("is-on", archiveFiles.length === 0);
+  }
+
+  function layoutArchives() {
+    var cards = Array.prototype.slice.call(archiveTrack.children);
+    cards.forEach(function (card, index) {
+      var offset = index - archiveIndex;
+      var distance = Math.abs(offset);
+      var visible = distance <= 2;
+      card.style.display = visible ? "" : "none";
+      card.style.opacity = String(Math.max(0.22, 1 - distance * 0.3));
+      card.style.zIndex = String(20 - distance);
+      card.style.transform = "translate(-50%, -50%) translateX(" + (offset * 148) + "px) translateZ(" + (-distance * 70) + "px) rotateY(" + (offset * -14) + "deg) scale(" + (1 - distance * 0.06) + ")";
+      card.classList.toggle("is-active", offset === 0);
+    });
+    archivePrev.disabled = archiveIndex <= 0;
+    archiveNext.disabled = archiveIndex >= archiveFiles.length - 1;
+  }
+
+  function openArchiveSession(item) {
+    var ui = service("uiWorkspace");
+    if (!ui || typeof ui.openSession !== "function") return;
+    closeArchive();
+    ui.openSession(item.sessionId);
+  }
+
+  function archiveAction(item, action) {
+    if (archiveBusy) return;
+    archiveBusy = true;
+    archivePanel.classList.add("is-busy");
+    archiveEmpty.textContent = action === "delete" ? "正在移入回收站…" : "正在取消归档…";
+    archiveEmpty.classList.add("is-on");
+    var path = action === "delete" ? "/dsh-apple-liquid-glass/archives/delete" : "/dsh-apple-liquid-glass/archives/unarchive";
+    fetch(path, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sessionId: item.sessionId }),
+    }).then(function (response) {
+      if (response.status === 404) throw new Error("restart-required");
+      if (!response.ok) throw new Error("archive HTTP " + response.status);
+      return response.json();
+    }).then(function (data) {
+      if (!data || !data.ok) throw new Error("archive failed");
+      archiveFiles = archiveFiles.filter(function (entry) {
+        return entry.sessionId !== item.sessionId;
+      });
+      renderArchives();
+    }).catch(function (error) {
+      archiveEmpty.textContent = error && error.message === "restart-required"
+        ? "取消归档和删除需要完全重启 DSH 后生效。"
+        : action === "delete"
+          ? "删除失败：文件没有移入回收站。"
+          : "取消归档失败，请刷新后重试。";
+      archiveEmpty.classList.add("is-on");
+    }).then(function () {
+      archiveBusy = false;
+      archivePanel.classList.remove("is-busy");
+    });
+  }
+
+  function fetchArchives() {
+    if (archiveLoading) return;
+    archiveLoading = true;
+    archiveRefresh.classList.add("is-spinning");
+    fetch("/dsh-apple-liquid-glass/archives", { cache: "no-store" })
+      .then(function (response) {
+        if (!response.ok) throw new Error("archives HTTP " + response.status);
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok || !Array.isArray(data.items)) throw new Error("archives unavailable");
+        var local = collectArchivedFiles();
+        var byId = {};
+        local.forEach(function (item) { byId[item.sessionId] = item; });
+        archiveFiles = data.items.filter(function (item) {
+          return item && item.exists !== false;
+        }).map(function (item) {
+          var known = byId[item.sessionId] || {};
+          return {
+            sessionId: item.sessionId,
+            title: known.title || "归档会话",
+            workspaceTitle: item.workspaceTitle || known.workspaceTitle || "工作区",
+            workspacePath: item.workspacePath || known.workspacePath || "",
+            date: known.date || "",
+            storage: item.storage || "",
+            exists: item.exists !== false,
+          };
+        });
+        archiveIndex = 0;
+        renderArchives();
+      })
+      .catch(function () {
+        archiveFiles = collectArchivedFiles();
+        archiveIndex = 0;
+        renderArchives();
+      })
+      .then(function () {
+        archiveLoading = false;
+        archiveRefresh.classList.remove("is-spinning");
+      });
+  }
+
+  function toggleArchive(next) {
+    var value = typeof next === "boolean" ? next : !archiveOpen;
+    if (value === archiveOpen) return;
+    archiveOpen = value;
+    archivePanel.classList.toggle("is-on", value);
+    archivePanel.setAttribute("aria-hidden", value ? "false" : "true");
+    if (value) {
+      closePanel();
+      closeProjects();
+      closeNews();
+      closeNativeTopUp();
+      archiveFiles = collectArchivedFiles();
+      archiveIndex = 0;
+      renderArchives();
+      fetchArchives();
+    }
+  }
+
+  function closeArchive() {
+    toggleArchive(false);
+  }
+
+  function onArchiveClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleArchive(!archiveOpen);
+  }
+
+  function onArchiveWheel(event) {
+    if (!archiveOpen || archiveFiles.length < 2) return;
+    event.preventDefault();
+    if (event.deltaY > 0) archiveIndex = Math.min(archiveFiles.length - 1, archiveIndex + 1);
+    else archiveIndex = Math.max(0, archiveIndex - 1);
+    layoutArchives();
+  }
+
+  function onArchivePointerDown(event) {
+    if (!archiveOpen || archiveFiles.length < 2 || event.target.closest("button")) return;
+    archivePanel.__dragX = event.clientX;
+    archivePanel.__dragIndex = archiveIndex;
+    archivePanel.setPointerCapture(event.pointerId);
+  }
+
+  function onArchivePointerUp(event) {
+    if (archivePanel.__dragX == null) return;
+    var delta = event.clientX - archivePanel.__dragX;
+    archivePanel.__dragX = null;
+    if (Math.abs(delta) < 36) return;
+    if (delta < 0) archiveIndex = Math.min(archiveFiles.length - 1, archivePanel.__dragIndex + 1);
+    else archiveIndex = Math.max(0, archivePanel.__dragIndex - 1);
+    layoutArchives();
   }
 
   function findRechargeControl() {
@@ -2855,6 +3133,7 @@ function createDynamicIsland(store, splash, ctx) {
       return;
     }
     closeNews();
+    closeArchive();
     closeNativeTopUp();
     var chinese = true;
     try {
@@ -2929,6 +3208,7 @@ function createDynamicIsland(store, splash, ctx) {
     closePanel();
     closeProjects();
     closeNews();
+    closeArchive();
     startTipWatch();
     openNativeTopUp();
   }
@@ -2993,6 +3273,10 @@ function createDynamicIsland(store, splash, ctx) {
   }
 
   function onOutside(event) {
+    if (archiveOpen && !archivePanel.contains(event.target) && !host.contains(event.target)) {
+      closeArchive();
+      return;
+    }
     if (newsOpen && !newsPanel.contains(event.target) && !host.contains(event.target)) {
       closeNews();
       return;
@@ -3010,6 +3294,10 @@ function createDynamicIsland(store, splash, ctx) {
 
   function onKeyDown(event) {
     if (event.key === "Escape") {
+      if (archiveOpen) {
+        closeArchive();
+        return;
+      }
       if (newsOpen) {
         closeNews();
         return;
@@ -3039,6 +3327,20 @@ function createDynamicIsland(store, splash, ctx) {
   newsRefresh.addEventListener("click", onNewsRefresh);
   newsAsk.addEventListener("click", askNewsSummary);
   newsConsultClose.addEventListener("click", resetConsult);
+  archiveButton.addEventListener("click", onArchiveClick);
+  archiveClose.addEventListener("click", closeArchive);
+  archiveRefresh.addEventListener("click", fetchArchives);
+  archivePrev.addEventListener("click", function () {
+    archiveIndex = Math.max(0, archiveIndex - 1);
+    layoutArchives();
+  });
+  archiveNext.addEventListener("click", function () {
+    archiveIndex = Math.min(archiveFiles.length - 1, archiveIndex + 1);
+    layoutArchives();
+  });
+  archivePanel.addEventListener("wheel", onArchiveWheel, { passive: false });
+  archivePanel.addEventListener("pointerdown", onArchivePointerDown);
+  archivePanel.addEventListener("pointerup", onArchivePointerUp);
   gear.addEventListener("click", onGearClick);
   more.addEventListener("click", onMoreClick);
   tabButtons.forEach(function (button) { button.addEventListener("click", onTabClick); });
@@ -3142,6 +3444,7 @@ function createDynamicIsland(store, splash, ctx) {
       panel.remove();
       projectModal.remove();
       newsPanel.remove();
+      archivePanel.remove();
     },
   };
 }

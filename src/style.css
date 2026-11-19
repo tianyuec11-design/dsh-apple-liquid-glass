@@ -2735,7 +2735,8 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
 
   .dslg-island__tip,
   .dslg-island__projects,
-  .dslg-island__news {
+  .dslg-island__news,
+  .dslg-island__archive {
     padding: 0 7px;
   }
 
@@ -2744,4 +2745,303 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
     max-height: 70vh;
     padding: 12px;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Archived session file manager
+   -------------------------------------------------------------------------- */
+
+.dslg-island__archive {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(160, 215, 190, 0.24);
+  border-radius: 999px;
+  background: rgba(70, 190, 150, 0.12);
+  color: #c8f1df;
+  font: 600 11px/1 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.dslg-island__archive:hover {
+  border-color: rgba(175, 240, 215, 0.62);
+  background: rgba(70, 190, 150, 0.25);
+  color: #ffffff;
+}
+
+.dslg-archive-panel {
+  position: fixed;
+  z-index: 2147482467;
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 540px);
+  max-height: 62vh;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(140, 220, 195, 0.45);
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 130% at 20% 0%, rgba(70, 190, 160, 0.24), transparent 52%),
+    linear-gradient(160deg, #0a1c1d 0%, #12333a 52%, #08171d 100%);
+  color: #e9fff7;
+  -webkit-backdrop-filter: blur(30px) saturate(170%) brightness(1.02);
+  backdrop-filter: blur(30px) saturate(170%) brightness(1.02);
+  box-shadow:
+    0 22px 60px rgba(3, 20, 20, 0.55),
+    0 0 0 1px rgba(160, 235, 210, 0.12),
+    inset 0 1px 0 rgba(200, 250, 230, 0.28);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.98);
+  transition: opacity 200ms ease, visibility 200ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dslg-archive-panel.is-on {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.dslg-archive-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin-bottom: 6px;
+}
+
+.dslg-archive-panel__heading {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dslg-archive-panel__heading span {
+  color: #8fe0c4;
+  font: 700 9px/1 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  letter-spacing: 0.14em;
+}
+
+.dslg-archive-panel__heading strong {
+  font: 600 15px/1.2 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
+.dslg-archive-panel__refresh,
+.dslg-archive-panel__close {
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 1px solid rgba(170, 235, 215, 0.24);
+  border-radius: 50%;
+  background: rgba(170, 235, 215, 0.08);
+  color: #dffef2;
+  font: 500 16px/1 sans-serif;
+  cursor: pointer;
+}
+
+.dslg-archive-panel__refresh.is-spinning {
+  animation: dslg-archive-spin 800ms linear infinite;
+}
+
+.dslg-archive-panel__stage {
+  position: relative;
+  flex: 1;
+  min-height: 190px;
+  margin: 2px 0 6px;
+  overflow: hidden;
+  perspective: 900px;
+  touch-action: none;
+}
+
+.dslg-archive-panel__track {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.dslg-archive-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(330px, 74vw);
+  min-height: 132px;
+  padding: 14px 14px 48px;
+  border: 1px solid rgba(160, 235, 210, 0.2);
+  border-radius: 16px;
+  background:
+    linear-gradient(155deg, rgba(26, 68, 70, 0.9), rgba(9, 32, 40, 0.94));
+  color: #e9fff7;
+  box-shadow:
+    0 18px 40px rgba(1, 14, 18, 0.42),
+    inset 0 1px 0 rgba(200, 255, 235, 0.18);
+  transform-style: preserve-3d;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease, border-color 200ms ease;
+  cursor: pointer;
+}
+
+.dslg-archive-card.is-active {
+  border-color: rgba(170, 245, 220, 0.5);
+  box-shadow:
+    0 22px 54px rgba(1, 14, 18, 0.5),
+    0 0 0 1px rgba(170, 245, 220, 0.16),
+    inset 0 1px 0 rgba(220, 255, 245, 0.26);
+}
+
+.dslg-archive-card__eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: #8fe0c4;
+  font: 700 9px/1.3 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  letter-spacing: 0.08em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dslg-archive-card__title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #f2fffa;
+  font: 600 15px/1.35 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.dslg-archive-card__meta {
+  display: block;
+  margin-top: 7px;
+  color: rgba(205, 245, 230, 0.5);
+  font: 500 9px/1.3 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
+.dslg-archive-card__actions {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  display: flex;
+  gap: 5px;
+  padding: 3px;
+  border: 1px solid rgba(170, 235, 215, 0.16);
+  border-radius: 999px;
+  background: rgba(4, 20, 24, 0.55);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+}
+
+.dslg-archive-card__actions button {
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  font: 600 9px/1 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dslg-archive-card__actions .is-unarchive {
+  background: rgba(80, 180, 215, 0.2);
+  color: #c8f2ff;
+}
+
+.dslg-archive-card__actions .is-unarchive:hover {
+  background: rgba(80, 180, 215, 0.36);
+}
+
+.dslg-archive-card__actions .is-delete {
+  background: rgba(235, 95, 110, 0.18);
+  color: #ffd5d9;
+}
+
+.dslg-archive-card__actions .is-delete:hover {
+  background: rgba(235, 95, 110, 0.34);
+}
+
+.dslg-archive-panel__nav {
+  position: absolute;
+  z-index: 30;
+  top: 50%;
+  width: 26px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(170, 235, 215, 0.2);
+  border-radius: 9px;
+  background: rgba(7, 26, 30, 0.5);
+  color: #d9fff1;
+  font: 400 22px/1 sans-serif;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.dslg-archive-panel__nav.is-prev { left: 0; }
+.dslg-archive-panel__nav.is-next { right: 0; }
+
+.dslg-archive-panel__nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.dslg-archive-panel__empty {
+  position: absolute;
+  z-index: 40;
+  top: 50%;
+  left: 50%;
+  display: none;
+  width: 80%;
+  padding: 18px;
+  border-radius: 14px;
+  background: rgba(5, 22, 24, 0.86);
+  color: rgba(220, 255, 240, 0.62);
+  text-align: center;
+  font: 400 11px/1.6 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+  transform: translate(-50%, -50%);
+}
+
+.dslg-archive-panel__empty.is-on {
+  display: block;
+}
+
+.dslg-archive-panel__foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(160, 235, 210, 0.12);
+  font: 500 9px/1.3 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
+.dslg-archive-panel__count { color: #9fe5cf; }
+.dslg-archive-panel__hint { color: rgba(205, 245, 230, 0.4); }
+
+.dslg-archive-panel.is-busy .dslg-archive-card__actions {
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+@keyframes dslg-archive-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 720px) {
+  .dslg-island__archive {
+    padding: 0 7px;
+  }
+
+  .dslg-archive-panel {
+    width: calc(100vw - 20px);
+    max-height: 70vh;
+    padding: 12px;
+  }
+
+  .dslg-archive-panel__stage {
+    min-height: 180px;
+  }
+
+  .dslg-archive-panel__nav.is-prev { left: 0; }
+  .dslg-archive-panel__nav.is-next { right: 0; }
 }
