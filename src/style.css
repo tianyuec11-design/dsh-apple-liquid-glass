@@ -2031,6 +2031,53 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
   background: rgba(70, 140, 255, 0.26);
 }
 
+.dslg-archive-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 8px;
+  padding: 8px 11px;
+  border: 1px solid rgba(150, 220, 195, 0.26);
+  border-radius: 11px;
+  background: linear-gradient(145deg, rgba(55, 150, 125, 0.14), rgba(10, 40, 42, 0.2));
+  color: #dffef2;
+  text-align: left;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.dslg-archive-entry:hover {
+  border-color: rgba(170, 240, 215, 0.6);
+  background: linear-gradient(145deg, rgba(65, 175, 145, 0.28), rgba(12, 50, 52, 0.28));
+}
+
+.dslg-archive-entry span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dslg-archive-entry b {
+  color: #e9fff7;
+  font: 600 11px/1.3 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
+.dslg-archive-entry small {
+  color: rgba(205, 245, 230, 0.48);
+  font: 400 9px/1.3 var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
+}
+
+.dslg-archive-entry em {
+  flex: none;
+  color: rgba(180, 240, 215, 0.6);
+  font: 400 18px/1 sans-serif;
+  font-style: normal;
+}
+
 @media (max-width: 720px) {
   .dslg-island-panel {
     width: calc(100vw - 20px);

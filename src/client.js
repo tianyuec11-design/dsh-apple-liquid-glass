@@ -1510,7 +1510,6 @@ function createDynamicIsland(store, splash, ctx) {
     '    <button class="dslg-island__tab is-active" type="button" data-dslg-tab="对话">对话</button>',
     '    <button class="dslg-island__tab" type="button" data-dslg-tab="轨迹">轨迹</button>',
     '    <button class="dslg-island__more" type="button" aria-label="更多">…</button>',
-    '    <button class="dslg-island__archive" type="button" aria-label="归档文件管理">归档</button>',
     '  </div>',
     '  <div class="dslg-island__meta">',
     '    <span class="dslg-island__time">00:00:00</span>',
@@ -1566,6 +1565,13 @@ function createDynamicIsland(store, splash, ctx) {
     '    <div class="dslg-island-panel__caption">高德定位</div>',
     '    <input class="dslg-island-panel__amap" type="text" autocomplete="off" spellcheck="false" placeholder="高德 Web 服务 Key（可选，仅反查城市名）">',
     '    <small class="dslg-island-panel__note">定位始终使用 IP 服务；这里填 Key 只用于把 IP 坐标反查成城市名，仅保存在本机。</small>',
+    '  </div>',
+    '  <div class="dslg-island-panel__section">',
+    '    <div class="dslg-island-panel__caption">归档文件</div>',
+    '    <button class="dslg-archive-entry" type="button" aria-label="归档文件管理">',
+    '      <span><b>归档文件管理</b><small>取消归档、删除到回收站</small></span>',
+    '      <em>›</em>',
+    '    </button>',
     '  </div>',
     '</div>',
   ].join("");
@@ -1667,7 +1673,7 @@ function createDynamicIsland(store, splash, ctx) {
   var projectsButton = host.querySelector(".dslg-island__projects");
   var tipButton = host.querySelector(".dslg-island__tip");
   var newsButton = host.querySelector(".dslg-island__news");
-  var archiveButton = host.querySelector(".dslg-island__archive");
+  var archiveButton = panel.querySelector(".dslg-archive-entry");
   var newsClose = newsPanel.querySelector(".dslg-news-panel__close");
   var newsRefresh = newsPanel.querySelector(".dslg-news-panel__refresh");
   var newsSummary = newsPanel.querySelector(".dslg-news-panel__summary p");
