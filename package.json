@@ -1,6 +1,6 @@
 {
   "name": "dsh-apple-liquid-glass",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Apple-style liquid glass for the DSH web client with a WebGL Amap-textured Earth opening, a DeepSeek news panel, a tip/recharge button with heart/car/rocket rewards, deep-navy Dynamic Island, workspace and task carousels, live context percentage, in-island glass settings, conflict auto-hide and a compact model-switch particle orb.",
   "type": "module",
   "main": "lib/index.js",
@@ -66,6 +66,7 @@
     "url": "https://github.com/tianyuec11-design/dsh-apple-liquid-glass/issues"
   }
 }
+
 
 
 

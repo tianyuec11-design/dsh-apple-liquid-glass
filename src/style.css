@@ -1736,6 +1736,13 @@ body:has([class*="thinking" i]:not([hidden])) .dslg-island__dot {
   color: inherit;
 }
 
+.dslg-island__tabs .dslg-island__archive {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 10px;
+  margin-left: 4px;
+}
+
 .dslg-island__meta {
   display: flex;
   align-items: center;
