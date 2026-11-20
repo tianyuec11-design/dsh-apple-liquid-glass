@@ -1516,6 +1516,9 @@ function createDynamicIsland(store, splash, ctx) {
     '    <span class="dslg-island__balance">余额 —</span>',
     '    <span class="dslg-island__context">上下文 —</span>',
     '    <button class="dslg-island__archive" type="button" aria-label="归档文件管理">归档</button>',
+    '    <button class="dslg-island__power" type="button" aria-label="电源">',
+    '      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6.4 6.4a8 8 0 1 0 11.2 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    '    </button>',
     '  </div>',
     '</div>',
   ].join("");
@@ -1633,6 +1636,21 @@ function createDynamicIsland(store, splash, ctx) {
     '<div class="dslg-archive-panel__foot"><span class="dslg-archive-panel__count">0 个归档</span><span class="dslg-archive-panel__hint">滚轮切换 · 点卡片打开</span></div>',
   ].join("");
   document.body.appendChild(archivePanel);
+
+  var powerMenu = document.createElement("div");
+  powerMenu.className = "dslg-power-menu";
+  powerMenu.setAttribute("aria-hidden", "true");
+  powerMenu.innerHTML = [
+    '<button class="dslg-power-option is-quit" type="button">',
+    '  <span>完全退出 DSH</span>',
+    '  <small>结束所有进程，不占内存</small>',
+    '</button>',
+    '<button class="dslg-power-option is-restart" type="button">',
+    '  <span>重启 DSH</span>',
+    '  <small>关闭后重新启动</small>',
+    '</button>',
+  ].join("");
+  document.body.appendChild(powerMenu);
   var archiveClose = archivePanel.querySelector(".dslg-archive-panel__close");
   var archiveRefresh = archivePanel.querySelector(".dslg-archive-panel__refresh");
   var archiveTrack = archivePanel.querySelector(".dslg-archive-panel__track");
@@ -1645,6 +1663,11 @@ function createDynamicIsland(store, splash, ctx) {
   var archiveFiles = [];
   var archiveLoading = false;
   var archiveBusy = false;
+  var powerButton = host.querySelector(".dslg-island__power");
+  var powerQuit = powerMenu.querySelector(".dslg-power-option.is-quit");
+  var powerRestart = powerMenu.querySelector(".dslg-power-option.is-restart");
+  var powerOpen = false;
+  var powerBusy = false;
   var panelOpen = false;
 
   var dot = host.querySelector(".dslg-island__dot");
@@ -1906,6 +1929,7 @@ function createDynamicIsland(store, splash, ctx) {
       closeProjects();
       closeNews();
       closeArchive();
+      closePower();
     }
   }
 
@@ -2103,6 +2127,7 @@ function createDynamicIsland(store, splash, ctx) {
       closeNews();
       closeProjects();
       closeArchive();
+      closePower();
       renderPanel();
       placePanel();
     }
@@ -2444,6 +2469,7 @@ function createDynamicIsland(store, splash, ctx) {
       closePanel();
       closeNews();
       closeArchive();
+      closePower();
       projectView = "workspaces";
       projectIndex = 0;
       currentWorkspace = "";
@@ -2819,6 +2845,7 @@ function createDynamicIsland(store, splash, ctx) {
       closePanel();
       closeProjects();
       closeArchive();
+      closePower();
       closeNativeTopUp();
       renderNews(newsData || newsFallback, newsFromHost);
       placeNews();
@@ -3034,6 +3061,7 @@ function createDynamicIsland(store, splash, ctx) {
       closePanel();
       closeProjects();
       closeNews();
+      closePower();
       closeNativeTopUp();
       archiveFiles = collectArchivedFiles();
       archiveIndex = 0;
@@ -3075,6 +3103,83 @@ function createDynamicIsland(store, splash, ctx) {
     if (delta < 0) archiveIndex = Math.min(archiveFiles.length - 1, archivePanel.__dragIndex + 1);
     else archiveIndex = Math.max(0, archivePanel.__dragIndex - 1);
     layoutArchives();
+  }
+
+  function placePowerMenu() {
+    if (!powerOpen) return;
+    var width = powerMenu.offsetWidth || 189;
+    var rect = host.getBoundingClientRect();
+    var left = Math.max(10, Math.min(window.innerWidth - width - 10, rect.right - width));
+    powerMenu.style.left = Math.round(left) + "px";
+    powerMenu.style.top = Math.round(rect.bottom + 10) + "px";
+  }
+
+  function resetPowerLabels() {
+    powerQuit.querySelector("span").textContent = "完全退出 DSH";
+    powerQuit.querySelector("small").textContent = "结束所有进程，不占内存";
+    powerRestart.querySelector("span").textContent = "重启 DSH";
+    powerRestart.querySelector("small").textContent = "关闭后重新启动";
+    powerQuit.disabled = false;
+    powerRestart.disabled = false;
+    powerMenu.classList.remove("is-busy");
+    powerBusy = false;
+  }
+
+  function performPower(action) {
+    if (powerBusy) return;
+    powerBusy = true;
+    powerMenu.classList.add("is-busy");
+    var button = action === "quit" ? powerQuit : powerRestart;
+    var label = action === "quit" ? "正在结束进程…" : "正在重启 DSH…";
+    button.querySelector("span").textContent = label;
+    button.querySelector("small").textContent = "请稍候";
+    powerQuit.disabled = true;
+    powerRestart.disabled = true;
+    fetch("/dsh-apple-liquid-glass/power", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: action }),
+    }).then(function (response) {
+      if (response.status === 404) throw new Error("restart-required");
+      if (!response.ok) throw new Error("power HTTP " + response.status);
+      return response.json();
+    }).then(function (data) {
+      if (!data || !data.ok) throw new Error("power failed");
+      button.querySelector("small").textContent = action === "quit" ? "进程即将结束" : "即将重新启动";
+    }).catch(function (error) {
+      resetPowerLabels();
+      button.querySelector("span").textContent = action === "quit" ? "完全退出 DSH" : "重启 DSH";
+      button.querySelector("small").textContent = error && error.message === "restart-required"
+        ? "需完整重启 DSH 一次加载电源接口"
+        : "操作失败，请手动关闭 DSH";
+    });
+  }
+
+  function togglePower(next) {
+    var value = typeof next === "boolean" ? next : !powerOpen;
+    if (value === powerOpen) return;
+    powerOpen = value;
+    powerMenu.classList.toggle("is-on", value);
+    powerMenu.setAttribute("aria-hidden", value ? "false" : "true");
+    if (value) {
+      closePanel();
+      closeProjects();
+      closeNews();
+      closeArchive();
+      resetPowerLabels();
+      placePowerMenu();
+    }
+  }
+
+  function closePower() {
+    togglePower(false);
+  }
+
+  function onPowerClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    togglePower(!powerOpen);
   }
 
   function findRechargeControl() {
@@ -3134,6 +3239,7 @@ function createDynamicIsland(store, splash, ctx) {
     }
     closeNews();
     closeArchive();
+    closePower();
     closeNativeTopUp();
     var chinese = true;
     try {
@@ -3209,6 +3315,7 @@ function createDynamicIsland(store, splash, ctx) {
     closeProjects();
     closeNews();
     closeArchive();
+    closePower();
     startTipWatch();
     openNativeTopUp();
   }
@@ -3273,6 +3380,10 @@ function createDynamicIsland(store, splash, ctx) {
   }
 
   function onOutside(event) {
+    if (powerOpen && !powerMenu.contains(event.target) && !host.contains(event.target)) {
+      closePower();
+      return;
+    }
     if (archiveOpen && !archivePanel.contains(event.target) && !host.contains(event.target)) {
       closeArchive();
       return;
@@ -3294,6 +3405,10 @@ function createDynamicIsland(store, splash, ctx) {
 
   function onKeyDown(event) {
     if (event.key === "Escape") {
+      if (powerOpen) {
+        closePower();
+        return;
+      }
       if (archiveOpen) {
         closeArchive();
         return;
@@ -3341,6 +3456,17 @@ function createDynamicIsland(store, splash, ctx) {
   archivePanel.addEventListener("wheel", onArchiveWheel, { passive: false });
   archivePanel.addEventListener("pointerdown", onArchivePointerDown);
   archivePanel.addEventListener("pointerup", onArchivePointerUp);
+  powerButton.addEventListener("click", onPowerClick);
+  powerQuit.addEventListener("click", function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    performPower("quit");
+  });
+  powerRestart.addEventListener("click", function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    performPower("restart");
+  });
   gear.addEventListener("click", onGearClick);
   more.addEventListener("click", onMoreClick);
   tabButtons.forEach(function (button) { button.addEventListener("click", onTabClick); });
@@ -3399,6 +3525,7 @@ function createDynamicIsland(store, splash, ctx) {
   window.addEventListener("resize", placePanel);
   window.addEventListener("resize", placeProjectModal);
   window.addEventListener("resize", placeNews);
+  window.addEventListener("resize", placePowerMenu);
   updateHeader();
   updateBusy();
   updateMeta();
@@ -3439,12 +3566,16 @@ function createDynamicIsland(store, splash, ctx) {
       window.removeEventListener("resize", placePanel);
       window.removeEventListener("resize", placeProjectModal);
       window.removeEventListener("resize", placeNews);
+      window.removeEventListener("resize", placePowerMenu);
       closeNews();
+      closeArchive();
+      closePower();
       host.remove();
       panel.remove();
       projectModal.remove();
       newsPanel.remove();
       archivePanel.remove();
+      powerMenu.remove();
     },
   };
 }

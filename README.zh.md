@@ -50,7 +50,7 @@ dsh plugin --profile web add 'github:tianyuec11-design/dsh-apple-liquid-glass'
 也可以直接安装固定版本：
 
 ```text
-https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.9.4/dsh-apple-liquid-glass-0.9.4.tgz
+https://github.com/tianyuec11-design/dsh-apple-liquid-glass/releases/download/v0.10.0/dsh-apple-liquid-glass-0.10.0.tgz
 ```
 
 > dshmarket 的 **主题** 标签页只列出目录中收录的主题；从 GitHub 安装的这个主题会出现在 **已安装插件** 里，这是正常的。它仍然是一个完整的 bundle 主题插件，可以正常启用/停用。
@@ -83,7 +83,7 @@ node scripts/build.mjs
 npm pack
 ```
 
-会生成 `dsh-apple-liquid-glass-0.9.4.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
+会生成 `dsh-apple-liquid-glass-0.10.0.tgz`。在插件管理器的「安装第三方插件」里粘贴这个 `.tgz` 的绝对路径即可。
 
 ---
 
@@ -95,6 +95,7 @@ npm pack
 - **作用范围**：保留原来的四项独立开关——输入框卡片、左侧栏控件、模型选择器、发送按钮。关掉某一项，它保持原生外观，其余部分不受影响。
 - **灵动岛**：顶部 5cm × 1cm 深蓝藏青玻璃胶囊，距上沿 1cm，居中于输入框所在列，带明显折射描边。收起时不显示文字，只在左侧 0.6cm 处显示状态点（思考中红色，空闲绿色）；点击后展开为标题、模式、对话/轨迹标签、时间、余额、上下文用量和液态玻璃设置入口。
 - **开屏动效**：开关。开启时会立即预览一次；之后每次打开 DSH 窗口会话播放一次（同一标签页刷新不会重复播放）。
+- **电源菜单**：归档旁有电源按钮，弹出两个独立液态水晶选项——浅红「完全退出 DSH」结束所有进程，浅绿「重启 DSH」关闭并重新启动。
 - **归档文件管理**：灵动岛「归档」按钮打开归档会话轮播；每张卡片旁有「取消归档」和「删除文件」悬浮按钮。取消归档把会话放回原工作区；删除会把会话存储目录移入 Windows 回收站，回收站还原后重新出现在归档列表。
 - **资讯入口**：灵动岛「资讯」按钮打开液态玻璃消息面板，抓取 DeepSeek 官方新闻，显示一段总结和最新消息列表；摘要旁有「✦ 询问」按钮，可让 AI 对摘要做进一步细致解读。
 - **打赏入口**：展开灵动岛点「♥ 打赏」，打开 DSH 原生内嵌充值页（Platform top-up，直接显示可支付二维码）；充值到账后按金额自动播放爱心（≤10）、跑车（10–20）、火箭（>20）动效。
@@ -266,6 +267,8 @@ MIT。见 [LICENSE](LICENSE)。
 开屏字体 **Dancing Script** © The Dancing Script Project Authors，按 SIL Open Font License 1.1 分发；完整许可见 [assets/fonts/OFL.txt](assets/fonts/OFL.txt)。
 
 「Liquid Glass」在这里描述视觉材质；本项目与 Apple Inc. 无隶属或背书关系。
+
+
 
 
 
