@@ -3147,6 +3147,10 @@ function createDynamicIsland(store, splash, ctx) {
     }).then(function (data) {
       if (!data || !data.ok) throw new Error("power failed");
       button.querySelector("small").textContent = action === "quit" ? "进程即将结束" : "即将重新启动";
+      setTimeout(function () {
+        resetPowerLabels();
+        button.querySelector("small").textContent = "未退出？请手动结束 DSH";
+      }, 8000);
     }).catch(function (error) {
       resetPowerLabels();
       button.querySelector("span").textContent = action === "quit" ? "完全退出 DSH" : "重启 DSH";
